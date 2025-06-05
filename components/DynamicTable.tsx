@@ -4,7 +4,7 @@ import { useState } from "react";
 type ColumnConfig = {
   key: string;
   label: string;
-  type?: "text" | "checkbox" | "switch" | "action";
+  type?: "text" | "checkbox" | "switch" | "action" | "string";
 };
 
 type RowData = {
