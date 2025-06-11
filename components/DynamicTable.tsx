@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState,useEffect } from "react";
 import { FaEye, FaEdit, FaTrash } from "react-icons/fa";
 import { useRouter } from "next/navigation";
 
@@ -46,6 +46,10 @@ export default function DynamicTable({
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
   const [data, setData] = useState<RowData[]>(initialData);
 
+  useEffect(() => {
+  setData(initialData);
+}, [initialData]);
+  
   const toggleRow = (rowId: string) => {
     const updated = selectedRows.includes(rowId)
       ? selectedRows.filter((id) => id !== rowId)
