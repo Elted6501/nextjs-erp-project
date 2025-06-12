@@ -1,0 +1,22 @@
+.div_busqueda{
+    display: flex;
+    flex-direction: column;
+    
+}
+.div_hijo_busqueda{
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 20px;
+}
+
+.div_principal{
+    margin-left: 10px;
+    margin-top: 10px;
+}
+
+.div_principal_top{
+    display: flex;
+    justify-content: space-between;
+    padding: 0 10px 0 1px;
+}

@@ -22,8 +22,8 @@ export default function Sidebar() {
 
   return (
     <aside className={`${styles.sidebar} ${isCollapsed ? styles.collapsed : ''}`}>
-      <div className={styles.top}>
-        <button onClick={toggleSidebar} className={styles.menuButton}>
+      <div className={styles.top} style={{ justifyContent: isCollapsed ? 'center' : 'space-around' }}>
+        <button onClick={toggleSidebar} className={styles.menuButton} style={{ alignSelf: isCollapsed ? 'center' : '200px' }}>
           <FiMenu />
         </button>
 
@@ -40,7 +40,7 @@ export default function Sidebar() {
 
       <nav className={styles.nav}>
         {modules.map((mod) => (
-          <Link key={mod.name} href={mod.href} className={styles.navItem}>
+          <Link key={mod.name} href={mod.href} className={styles.navItem} style={{ justifyContent: isCollapsed ? 'center' : 'flex-start' }}>
             <span className={styles.icon}>{mod.icon}</span>
             {!isCollapsed && <span>{mod.name}</span>}
           </Link>

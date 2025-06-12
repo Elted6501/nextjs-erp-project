@@ -1,9 +1,10 @@
 'use client';
 
+import React from 'react';
 import styles from '../styles/Button.module.css';
 
 interface ButtonProps {
-  label: string;
+  label: React.ReactNode;
   onClick?: () => void;
   className?: string;
 }
