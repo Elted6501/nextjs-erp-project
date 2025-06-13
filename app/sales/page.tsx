@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Button from '@/components/Button';
 import styles from './sales.module.css';
 import { Trash } from 'lucide-react';
@@ -23,6 +23,32 @@ export default function SalesPage() {
   const [showModal, setShowModal] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [viewMode, setViewMode] = useState<'normal' | 'salesDay' | 'salesMonth'>('normal');
+
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setMenuOpen(false);
+      }
+    };
+
+    const handleEscapeKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setMenuOpen(false);
+      }
+    };
+
+    if (menuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('keydown', handleEscapeKey);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleEscapeKey);
+    };
+  }, [menuOpen]);
 
   const today = new Date();
   const todayStr = today.toISOString().split('T')[0];
@@ -66,6 +92,7 @@ export default function SalesPage() {
 
   return (
     <div className="flex relative min-h-screen">
+      {/* Employee Button */}
       <div className="absolute top-4 left-4 z-20">
         <div className="relative">
           <button className="bg-red-800 text-white px-4 py-2 rounded-md cursor-text">
@@ -92,9 +119,8 @@ export default function SalesPage() {
               )}
             </div>
 
-            <div className="relative flex gap-2">
-
-
+            {/* OPTIONS with ref */}
+            <div ref={menuRef} className="relative flex gap-2">
               <button
                 onClick={() => setMenuOpen(!menuOpen)}
                 className="bg-red-800 text-white px-4 py-2 rounded-md hover:bg-red-900 transition cursor-pointer"
@@ -129,36 +155,36 @@ export default function SalesPage() {
             </div>
           </div>
 
-
           {viewMode === 'normal' && (
-            <div className="flex gap-4 mb-4 items-end">
-              <div>
-                <label className="block text-sm font-medium text-gray-700">ID</label>
-                <input
-                  type="text"
-                  value={inputId}
-                  onChange={(e) => setInputId(e.target.value)}
-                  placeholder="Product ID"
-                  className="border rounded px-2 py-1 w-40"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Quantity</label>
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  pattern="[0-9]*"
-                  value={inputQty}
-                  onChange={(e) => setInputQty(e.target.value)}
-                  placeholder="Qty"
-                  className="border rounded px-2 py-1 w-28 appearance-none"
-                />
-              </div>
-              <div className="pt-6">
-                <Button label="Enter" className="cursor-pointer" onClick={handleAddProduct} />
-              </div>
-            </div>
-          )}
+  <div className="flex gap-4 mb-4 items-end">
+    <div>
+      <label className="block text-sm font-medium text-gray-700 hover:text-red-800 transition">ID</label>
+      <input
+        type="text"
+        value={inputId}
+        onChange={(e) => setInputId(e.target.value)}
+        placeholder="Product ID"
+        className="border rounded px-2 py-1 w-40 focus:outline-none focus:ring-.8 focus:ring-red-500 focus:border-red-500"
+      />
+    </div>
+    <div>
+      <label className="block text-sm font-medium text-gray-700 hover:text-red-800 transition">Quantity</label>
+      <input
+        type="text"
+        inputMode="numeric"
+        pattern="[0-9]*"
+        value={inputQty}
+        onChange={(e) => setInputQty(e.target.value)}
+        placeholder="Qty"
+        className="border rounded px-2 py-1 w-28 appearance-none focus:outline-none focus:ring-.8 focus:ring-red-500 focus:border-red-500"
+      />
+    </div>
+    <div className="pt-6">
+      <Button label="Enter" className="cursor-pointer" onClick={handleAddProduct} />
+    </div>
+  </div>
+)}
+
 
           <table className="min-w-full bg-white rounded-xl shadow-md overflow-hidden">
             <thead className="bg-red-800 text-white text-sm font-semibold">
@@ -177,8 +203,8 @@ export default function SalesPage() {
                 <tr key={index} className="border-t">
                   <td className="px-6 py-4">{row.id}</td>
                   <td className="px-6 py-4">{row.date.toISOString().split('T')[0]}</td>
-                  <td className="px-6 py-4">{row.name}</td>
-                  <td className="px-6 py-4">{row.description}</td>
+                  <td className="px-6 py-4 max-w-[8rem] break-words whitespace-pre-wrap">{row.name}</td>
+                  <td className="px-6 py-4 max-w-[15rem] break-words whitespace-pre-wrap">{row.description}</td>
                   <td className="px-6 py-4 text-right">{row.quantity}</td>
                   <td className="px-6 py-4 text-right">${row.price.toFixed(2)}</td>
                   {viewMode === 'normal' && (
