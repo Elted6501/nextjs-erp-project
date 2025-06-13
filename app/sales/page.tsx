@@ -19,6 +19,7 @@ export default function SalesPage() {
 
   const [inputId, setInputId] = useState('');
   const [inputQty, setInputQty] = useState('');
+  const [showModal, setShowModal] = useState(false); // modal control
 
   const handleAddProduct = () => {
     const product = PRODUCTS_DB.find((p) => p.id === inputId.trim().toUpperCase());
@@ -36,7 +37,7 @@ export default function SalesPage() {
       setInputId('');
       setInputQty('');
     } else {
-      alert('Invalid ID or quantity');
+      setShowModal(true); // show modal instead of alert
     }
   };
 
@@ -52,7 +53,6 @@ export default function SalesPage() {
             Add your product ID
           </h1>
 
-          {/* Inputs para ID y Cantidad arriba de la tabla */}
           <div className="flex gap-4 mb-4 items-end">
             <div>
               <label className="block text-sm font-medium text-gray-700">ID</label>
@@ -112,10 +112,26 @@ export default function SalesPage() {
           </table>
 
           <div className="mt-4 flex flex-wrap gap-4">
-            <Button label="Create purchase" className="cursor-pointer" />
+            <Button label="Create sale" className="cursor-pointer" />
           </div>
         </div>
       </div>
+
+      {/* Modal de advertencia */}
+      {showModal && (
+        <div className="fixed inset-0 backdrop-blur-sm bg-white/30 flex justify-center items-center z-50">
+          <div className="bg-white p-6 rounded-xl shadow-lg max-w-sm w-full text-center">
+            <h2 className="text-lg font-bold text-red-700 mb-2">Warning</h2>
+            <p className="text-gray-700 mb-4">Invalid product ID or quantity. Please check your input.</p>
+            <button
+              onClick={() => setShowModal(false)}
+              className="bg-red-700 text-white px-4 py-2 rounded hover:bg-red-800 transition"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
