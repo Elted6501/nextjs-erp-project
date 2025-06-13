@@ -83,7 +83,7 @@ export default function CreateOrderPage() {
               onSelect={(value) =>
                 setFormData((prev) => ({ ...prev, product_category: value }))
               }
-              defaultValue={formData.product_category}
+              value={formData.product_category}
             />
           </div>
           <div className="flex flex-col gap-1">
@@ -99,7 +99,7 @@ export default function CreateOrderPage() {
               onSelect={(value) =>
                 setFormData((prev) => ({ ...prev, supplier: value }))
               }
-              defaultValue={formData.supplier}
+              value={formData.supplier}
             />
           </div>
 
@@ -116,7 +116,7 @@ export default function CreateOrderPage() {
               onSelect={(value) =>
                 setFormData((prev) => ({ ...prev, product: value }))
               }
-              defaultValue={formData.product}
+              value={formData.product}
             />
           </div>
 
