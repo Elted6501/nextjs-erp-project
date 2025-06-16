@@ -6,6 +6,7 @@ import Dropdown from '@/components/Dropdown';
 import DynamicTable from '@/components/DynamicTable';
 import AlertDialog from '@/components/AlertDialog';
 import styles from './page.module.css';
+import { GoAlertFill } from "react-icons/go";
 
 const columns = [
   { key: 'select', label: '', type: 'checkbox' },
@@ -18,6 +19,8 @@ const columns = [
 ];
 
 export default function InventoryPage() {
+
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [tableData, setTableData] = useState([]);
   const [warehouseList, setWarehouseList] = useState([]);
   const [suppliersList, setSuppliersList] = useState([]);
@@ -157,10 +160,10 @@ export default function InventoryPage() {
           {
             showAlertDialog && (
               <AlertDialog
+                title='alerta'
+                icon={<GoAlertFill className="w-10 h-10" />}
                 content='¿Está seguro que quiere eliminar el siguiente producto de la base de datos?'
-                onSuccess={() => alert('f')}
-                onNeutral={() => alert('otra accion')}
-                onNeutralLabel='Neutral'
+                onSuccess={() => alert(selectedIds.join(", "))}
                 onCancel={() => setShowAlertDialog(false)}
                 />
             )
@@ -199,6 +202,7 @@ export default function InventoryPage() {
           columns={columns}
           currentPage={currentPage}
           onPageChange={setCurrentPage}
+          onSelectedRowsChange={ids => setSelectedIds(ids)}
         />
 
         <div className="mt-4 flex flex-wrap gap-4">
