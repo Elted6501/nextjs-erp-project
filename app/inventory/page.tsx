@@ -7,12 +7,16 @@ import DynamicTable from '@/components/DynamicTable';
 import AlertDialog from '@/components/AlertDialog';
 import styles from './page.module.css';
 import { GoAlertFill } from "react-icons/go";
+import { FaSearch } from "react-icons/fa";
 
 const columns = [
   { key: 'select', label: '', type: 'checkbox' },
   { key: 'name', label: 'Name', type: 'text' },
   { key: 'description', label: 'Description', type: 'text' },
   { key: 'brand', label: 'Brand', type: 'text' },
+  { key: 'warehouse_name', label: 'Warehouse', type: 'text'},
+  { key: 'supplier_name', label: 'Supplier', type: 'text'},
+  { key: 'category_name', label: 'Type', type: 'text'},
   { key: 'stock', label: 'Quantity', type: 'text' },
   { key: 'sale_price', label: 'Price', type: 'text' },
   { key: 'active', label: 'Active', type: 'switch' },
@@ -21,10 +25,10 @@ const columns = [
 export default function InventoryPage() {
 
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [tableData, setTableData] = useState([]);
-  const [warehouseList, setWarehouseList] = useState([]);
-  const [suppliersList, setSuppliersList] = useState([]);
-  const [productTypeList, setProductTypeList] = useState([]);
+  const [tableData, setTableData] = useState<FilteredProducts[]>([]);
+  const [warehouseList, setWarehouseList] = useState<Option[]>([]);
+  const [suppliersList, setSuppliersList] = useState<Option[]>([]);
+  const [productTypeList, setProductTypeList] = useState<Option[]>([]);
 
   const [selectedWarehouse, setSelectedWarehouse] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -34,75 +38,33 @@ export default function InventoryPage() {
 
   const [currentPage, setCurrentPage] = useState(1);
 
-  interface FilteredProducts {
-    select: true,
-    id: string,
-    product_id: string,
-    warehouse_id: string,
-    name: string,
-    description: string,
-    sku: string,
-    category_id: string,
-    brand: string,
-    measure_unit: string,
-    cost_price: string,
-    sale_price: string,
-    active: boolean,
-    stock: string,
-  }
-
+  const [inputValue, setInputValue] = useState<string>('');
   const [filteredData, setFilteredData] = useState<FilteredProducts[]>([]);
+  const [filteredByDropdown, setFilteredByDropdown] = useState<FilteredProducts[]>([]);
+  interface FilteredProducts {
+  select: boolean;
+  id: string;
+  product_id: number;
+  warehouse_id: number;
+  name: string;
+  description: string;
+  sku: string;
+  category_id: number;
+  brand: string;
+  measure_unit: string;
+  cost_price: number;
+  sale_price: number;
+  active: boolean;
+  stock: number;
+  supplier_name: string;
+  warehouse_name: string;
+  category_name: string;
+}
 
-  useEffect(() => {
-    fetch('/api/inventory/warehouses')
-      .then(res => res.json())
-      .then(
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (data: any) => {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const warehouse_list = data.map((item: any) => ({
-            warehouse_id: item.warehouse_id,
-            label: item.name,
-            value: item.warehouse_id.toString()
-          }));
-          setWarehouseList(warehouse_list);
-        }
-      );
-  }, []);
-
-  useEffect(() => {
-    fetch('/api/inventory/product_type')
-      .then(res => res.json())
-      .then(
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (data: any) => {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const category_list = data.map((item: any) => ({
-            category_id: item.category_id,
-            label: item.name,
-            value: item.category_id.toString()
-          }));
-          setProductTypeList(category_list);
-        }
-      );
-  }, []);
-
-  useEffect(() => {
-    fetch('/api/inventory/suppliers')
-      .then(res => res.json())
-      .then(
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (data: any) => {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const suppliers_list = data.map((item: any) => ({
-            supplier_id: item.supplier_id,
-            label: item.name,
-            value: item.supplier_id.toString()
-          }));
-          setSuppliersList(suppliers_list);
-        }
-      );
-  }, []);
+interface Option {
+  label: string;
+  value: string;
+}
 
   useEffect(() => {
     fetch('/api/inventory/products')
@@ -126,7 +88,9 @@ export default function InventoryPage() {
             sale_price: item.sale_price,
             active: item.active,
             stock: item.stock,
-            supplier_id: item.supplier_id,
+            supplier_name: item.supplier_name,
+            warehouse_name: item.warehouse_name,
+            category_name: item.category_name
           }));
           setTableData(transformed);
         }
@@ -134,23 +98,71 @@ export default function InventoryPage() {
   }, []);
 
   useEffect(() => {
-    let filtered = [...tableData];
+  let filtered = [...tableData];
 
-    if (selectedWarehouse) {
-      filtered = filtered.filter(item => item['warehouse_id'] === Number(selectedWarehouse));
-    }
+  if (selectedWarehouse) {
+  filtered = filtered.filter(item =>
+    item.warehouse_name === selectedWarehouse
+  );
+}
 
-    if (selectedCategory) {
-      filtered = filtered.filter(item => item['category_id'] === Number(selectedCategory));
-    }
+  if (selectedCategory) {
+  filtered = filtered.filter(item =>
+    item.category_name === selectedCategory
+  );
+}
 
-    if (selectedSupplier) {
-      filtered = filtered.filter(item => item['supplier_id'] === Number(selectedSupplier));
-    }
+  if (selectedSupplier) {
+  filtered = filtered.filter(item =>
+    item.supplier_name === selectedSupplier
+  );
+}
 
-    setFilteredData(filtered);
-    setCurrentPage(1);
-  }, [selectedWarehouse, selectedCategory, selectedSupplier, tableData]);
+  setFilteredByDropdown(filtered);
+  setFilteredData(filtered);
+  setCurrentPage(1);
+}, [selectedWarehouse, selectedCategory, selectedSupplier, tableData]);
+
+  useEffect(() => {
+  const warehouses = Array.from(
+  new Set(tableData.map(p => p.warehouse_name))
+).map(name => ({
+  label: name,
+  value: name,
+}));
+setWarehouseList(warehouses);
+
+const categories = Array.from(
+  new Set(tableData.map(p => p.category_name))
+).map(name => ({
+  label: name,
+  value: name,
+}));
+setProductTypeList(categories);
+
+const suppliers = Array.from(
+  new Set(tableData.map(p => p.supplier_name))
+).map(name => ({
+  label: name,
+  value: name,
+}));
+setSuppliersList(suppliers);
+}, [tableData]);
+
+  useEffect(() => {
+  if (!inputValue.trim()) {
+    setFilteredData(filteredByDropdown);
+    return;
+  }
+
+  const query = inputValue.toLowerCase();
+  const result = tableData.filter(item =>
+    item.name.toLowerCase().includes(query)
+  );
+
+  setFilteredData(result);
+  setCurrentPage(1);
+}, [inputValue, tableData, filteredByDropdown]);
 
   return (
     <div className="flex">
@@ -195,6 +207,34 @@ export default function InventoryPage() {
               setCurrentPage(1);
             }}
           />
+          <div className="flex items-center gap-2">
+            <label className="text-[#8b0f14] font-bold">
+              Search:
+            </label>
+            <input
+              type="text"
+              placeholder="Search by name"
+              className="border border-gray-300 rounded px-2 py-1 w-64"
+              value={inputValue}
+              onFocus={() => {
+                setSelectedWarehouse(null);
+                setSelectedCategory(null);
+                setSelectedSupplier(null);
+              }}
+              onChange={(e) => {
+                setInputValue(e.target.value);
+              }}
+            />
+            <Button
+              label={
+                <div className="flex items-center gap-2">
+                  <FaSearch className="w-4 h-4"/>
+                </div>
+              }
+              className="bg-[#a01217] text-white hover:bg-[#8b0f14] transition-colors p-2 w-fit h-fit"
+              onClick={() => {}}
+            />
+          </div>
         </div>
 
         <DynamicTable
