@@ -130,8 +130,8 @@ export default function SalesPage() {
         client_id: 1, // Por ahora hardcodeado, después vendrá de un selector de cliente
         employee_id: 1, // Por ahora hardcodeado, después vendrá de la sesión
         payment_method: 'Cash', // Por ahora hardcodeado, después vendrá de un selector
-        vat: totalPrice * 0.16, // Calculando 16% de IVA (ajustar según tu país)
-        notes: '', // Se puede agregar un campo para notas
+        vat: totalPrice * 0.16, // Calculando 16% de IVA 
+        notes: '', 
         items: rows.map(item => ({
           product_id: item.product_id,
           quantity: item.quantity,
