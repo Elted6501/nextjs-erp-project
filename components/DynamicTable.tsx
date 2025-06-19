@@ -10,22 +10,6 @@ type ColumnConfig = {
 };
 
 type FilteredProducts = {
-<<<<<<< HEAD
-  select: true;
-  id: string;
-  product_id: string;
-  warehouse_id: string;
-  name: string;
-  description: string;
-  sku: string;
-  category_id: string;
-  brand: string;
-  measure_unit: string;
-  cost_price: string;
-  sale_price: string;
-  active: boolean;
-  stock: string;
-=======
   select: boolean;
   id: string;
   product_id: number;
@@ -43,7 +27,6 @@ type FilteredProducts = {
   supplier_name: string;
   warehouse_name: string;
   category_name: string;
->>>>>>> 28f29e71b0fab963d2a8618a6e6d7bd4bd3c38e9
 };
 
 type RowData = {

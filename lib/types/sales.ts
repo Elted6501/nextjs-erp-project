@@ -95,6 +95,7 @@ export const SaleReturnCreateSchema = z.object({
 
 export const SaleReturnUpdateSchema = SaleReturnCreateSchema.partial();
 
+
 // API Response Types
 export interface ApiResponse<T> {
   data?: T;
