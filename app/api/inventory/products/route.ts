@@ -1,6 +1,24 @@
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
 
+type RawProduct = {
+  product_id: number;
+  warehouse_id: number;
+  name: string;
+  description: string;
+  sku: string;
+  category_id: number;
+  brand: string;
+  measure_unit: string;
+  cost_price: number;
+  sale_price: number;
+  active: boolean;
+  stock: number;
+  suppliers?: { name: string }[];           // <-- explícitamente un arreglo
+  warehouses?: { name: string } | { name: string }[]; // puede ser objeto o arreglo
+  categories?: { name: string } | { name: string }[];
+};
+
 export async function GET() {
   try {
     const supabase = await createClient();

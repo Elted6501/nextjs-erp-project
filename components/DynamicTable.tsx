@@ -6,10 +6,11 @@ import { useRouter } from "next/navigation";
 type ColumnConfig = {
   key: string;
   label: string;
-  type: "text" | "checkbox" | "switch" | "action" | string;
+  type: string;
 };
 
 type FilteredProducts = {
+<<<<<<< HEAD
   select: true;
   id: string;
   product_id: string;
@@ -24,6 +25,25 @@ type FilteredProducts = {
   sale_price: string;
   active: boolean;
   stock: string;
+=======
+  select: boolean;
+  id: string;
+  product_id: number;
+  warehouse_id: number;
+  name: string;
+  description: string;
+  sku: string;
+  category_id: number;
+  brand: string;
+  measure_unit: string;
+  cost_price: number;
+  sale_price: number;
+  active: boolean;
+  stock: number;
+  supplier_name: string;
+  warehouse_name: string;
+  category_name: string;
+>>>>>>> 28f29e71b0fab963d2a8618a6e6d7bd4bd3c38e9
 };
 
 type RowData = {
@@ -79,6 +99,10 @@ export default function DynamicTable({
   setData(initialData);
 }, [initialData]);
 
+  useEffect(() => {
+  setData(initialData);
+}, [initialData]);
+  
   const toggleRow = (rowId: string) => {
     const updated = selectedRows.includes(rowId)
       ? selectedRows.filter((id) => id !== rowId)
