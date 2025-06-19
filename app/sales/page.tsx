@@ -19,6 +19,7 @@ interface Product {
   sale_price: number;
   brand: string;
   active: boolean;
+  stock?: number; // Agregar campo de stock
 }
 
 interface CartItem {
@@ -47,6 +48,7 @@ export default function SalesPage() {
     fetch('/api/inventory/products')
       .then(res => res.json())
       .then((data: Product[]) => {
+        console.log('Products from API:', data); // Debug: ver qué datos llegan
         // Filtrar solo productos activos
         const activeProducts = data.filter(product => product.active);
         setProducts(activeProducts);
@@ -127,8 +129,8 @@ export default function SalesPage() {
     try {
       // Preparar los datos de la venta
       const saleData = {
-        client_id: 1, // Por ahora hardcodeado, después vendrá de un selector de cliente
-        employee_id: 1, // Por ahora hardcodeado, después vendrá de la sesión
+        client_id: null, // null en lugar de 1, ya que no tenemos clientes creados
+        employee_id: null, // null en lugar de 1, ya que no tenemos empleados creados
         payment_method: 'Cash', // Por ahora hardcodeado, después vendrá de un selector
         vat: totalPrice * 0.16, // Calculando 16% de IVA 
         notes: '', 
@@ -141,7 +143,9 @@ export default function SalesPage() {
       };
 
       // Hacer la petición al API
-      const response = await fetch('/api/sales', {
+      console.log('Sending sale data:', saleData); // Debug log
+      
+      const response = await fetch('/api/sales/selling', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -150,6 +154,7 @@ export default function SalesPage() {
       });
 
       const result = await response.json();
+      console.log('API Response:', result); // Debug log
 
       if (!response.ok) {
         throw new Error(result.error || 'Failed to create sale');
@@ -264,6 +269,7 @@ export default function SalesPage() {
                   <tr className="text-left border-b">
                     <th className="p-1">SKU</th>
                     <th className="p-1">Name</th>
+                    <th className="p-1">Stock</th>
                     <th className="p-1">Price</th>
                   </tr>
                 </thead>
@@ -272,6 +278,13 @@ export default function SalesPage() {
                     <tr key={product.product_id} className="border-b">
                       <td className="p-1">{product.sku}</td>
                       <td className="p-1">{product.name}</td>
+                      <td className={`p-1 font-semibold ${
+                        (product.stock || 0) <= 0 ? 'text-red-600' : 
+                        (product.stock || 0) < 10 ? 'text-yellow-600' : 
+                        'text-green-600'
+                      }`}>
+                        {product.stock || 0}
+                      </td>
                       <td className="p-1">${Number(product.sale_price).toFixed(2)}</td>
                     </tr>
                   ))}
