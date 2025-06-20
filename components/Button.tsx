@@ -7,6 +7,7 @@ interface ButtonProps {
   label: React.ReactNode;
   onClick?: () => void;
   className?: string;
+  disabled?: boolean;
 }
 
 export default function Button({ label, onClick, className = '' }: ButtonProps) {

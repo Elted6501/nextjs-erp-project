@@ -73,7 +73,7 @@ export const ClientCreateSchema = z.object({
   address: z.string().optional(),
   city: z.string().max(30).optional(),
   state: z.string().max(30).optional(),
-  zip_code: z.string().max(10).optional(), // Aumentado a 10 caracteres para códigos postales internacionales
+  zip_code: z.string().max(15).optional(), // Aumentado a 10 caracteres para códigos postales internacionales
   country: z.string().max(30).optional(),
   notes: z.string().optional(),
   status: z.enum(['Active', 'Inactive', 'Blocked']).optional(),
