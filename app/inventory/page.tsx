@@ -38,6 +38,10 @@ export default function InventoryPage() {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedSupplier, setSelectedSupplier] = useState<string | null>(null);
 
+  /* const [warehouseApiList, setWarehouseApiList] = useState<string[] | null>(null);
+  const [categoryApiList, setCategoryApiList] = useState<string[] | null>(null);
+  const [supplierApiList, setSupplierApiList] = useState<string[] | null>(null); */
+
   const [showAlertDialog, setShowAlertDialog] = useState(false);
   const [showRemove, setShowRemove] = useState(false);
   const [shouldDelete, setShouldDelete] = useState(false);
@@ -108,7 +112,10 @@ export default function InventoryPage() {
     productState,
     shouldDelete,
     setSelectedIds,
-    setShouldDelete
+    setShouldDelete,
+    /* setWarehouseApiList,
+    setCategoryApiList,
+    setSupplierApiList */
   )
   
   return (
@@ -122,7 +129,10 @@ export default function InventoryPage() {
                 title='alerta'
                 icon={<GoAlertFill className="w-10 h-10" />}
                 content='¿Está seguro que quiere eliminar el siguiente producto de la base de datos?'
-                onSuccess={() => setShouldDelete(true)}
+                onSuccess={() => {
+                  setShouldDelete(true);
+                  setShowAlertDialog(false);
+                }}
                 onCancel={() => setShowAlertDialog(false)}
               />
             )

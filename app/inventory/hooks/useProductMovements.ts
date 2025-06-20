@@ -47,7 +47,9 @@ export function useProductMovements(
   shouldDelete: boolean,
   setSelectedIds: (ids: string[]) => void,
   setShouldDelete: (show: boolean) => void,
-
+  /* setWarehouseApiList: (list: string[]) => void,
+  setCategoryApiList: (list: string[]) => void,
+  setSupplierApiList: (list: string[]) => void */
 
 ) {
   useEffect(() => {
@@ -81,6 +83,51 @@ export function useProductMovements(
         }
       );
   }, [setTableData]);
+
+  /* useEffect(() => {
+    fetch('/api/inventory/warehouses')
+    .then(res => res.json())
+    .then(
+        (data) => {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const transformed = data.map((item: any) => ({
+            warehouse_id: item.warehouse_id,
+            name: item.name
+          }));
+          setWarehouseApiList(transformed);
+        }
+    )
+  },[setWarehouseApiList]);
+
+  useEffect(() => {
+    fetch('/api/inventory/category')
+    .then(res => res.json())
+    .then(
+        (data) => {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const transformed = data.map((item: any) => ({
+            category_id: item.category_id,
+            name: item.name
+          }));
+          setCategoryApiList(transformed);
+        }
+    )
+  },[setCategoryApiList]);
+
+  useEffect(() => {
+    fetch('/api/inventory/suppliers')
+    .then(res => res.json())
+    .then(
+        (data) => {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const transformed = data.map((item: any) => ({
+            supplier_id: item.supplier_id,
+            name: item.name
+          }));
+          setSupplierApiList(transformed);
+        }
+    )
+  },[setSupplierApiList]); */
 
   useEffect(() => {
     let filtered = [...tableData];
