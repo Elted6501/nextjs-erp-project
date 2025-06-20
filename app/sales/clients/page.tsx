@@ -5,9 +5,9 @@ import Button from '@/components/Button';
 import { Pencil, X } from 'lucide-react';
 
 interface Client {
-    client_id: number; // Cambiado de _id a client_id según tu esquema
+    client_id: number;
     client_type: 'Individual' | 'Business';
-    taxpayer_type: 'Physical Person' | 'Legal Entity'; // Actualizado según tu esquema
+    taxpayer_type: 'Physical Person' | 'Legal Entity';
     business_name?: string;
     first_name?: string;
     last_name?: string;
@@ -62,7 +62,7 @@ export default function ClientPage() {
                 ...(search && { search })
             });
 
-            const response = await fetch(`/api/clients?${params}`);
+            const response = await fetch(`/api/sales/clients?${params}`);
             const data = await response.json();
 
             if (response.ok) {
@@ -89,8 +89,7 @@ export default function ClientPage() {
     const handleSaveClient = async () => {
         try {
             if (editingClient) {
-                // Actualización de cliente (necesitarás crear el endpoint PUT)
-                const res = await fetch(`/api/clients/${editingClient.client_id}`, {
+                const res = await fetch(`/api/sales/clients/${editingClient.client_id}`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(newClient),
@@ -106,7 +105,7 @@ export default function ClientPage() {
                 await loadClients(); // Recargar la lista
             } else {
                 // Crear nuevo cliente
-                const response = await fetch('/api/clients', {
+                const response = await fetch('/api/sales/clients', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(newClient),

@@ -42,7 +42,7 @@ export async function POST(request: Request) {
     }
 
     try {
-      // 1. Verificar stock desde la tabla products
+      // 1. Verificar stock disponible directamente desde products
       const productIds = items.map((item: SaleItem) => item.product_id);
       
       const { data: productsWithStock, error: productsError } = await supabase

@@ -61,25 +61,56 @@ export const SaleCreateSchema = z.object({
 export const SaleUpdateSchema = SaleCreateSchema.partial();
 
 export const ClientCreateSchema = z.object({
-  client_type: z.enum(['individual', 'business']).optional(),
-  taxpayer_type: z.string().optional(),
-  business_name: z.string().min(1).optional(),
-  first_name: z.string().min(1).optional(),
-  last_name: z.string().min(1).optional(),
-  tax_id: z.string().optional(),
-  email: z.string().email().optional(),
-  phone: z.string().optional(),
-  mobile_phone: z.string().optional(),
+  client_type: z.enum(['Individual', 'Business']).optional(),
+  taxpayer_type: z.enum(['Physical Person', 'Legal Entity']).optional(),
+  business_name: z.string().min(1).max(40).optional(),
+  first_name: z.string().min(1).max(20).optional(),
+  last_name: z.string().min(1).max(20).optional(),
+  tax_id: z.string().max(20).optional(),
+  email: z.string().email().max(30).optional(),
+  phone: z.string().max(20).optional(),
+  mobile_phone: z.string().max(20).optional(),
   address: z.string().optional(),
-  city: z.string().optional(),
-  state: z.string().optional(),
-  zip_code: z.string().optional(),
-  country: z.string().optional(),
+  city: z.string().max(30).optional(),
+  state: z.string().max(30).optional(),
+  zip_code: z.string().max(10).optional(), // Aumentado a 10 caracteres para códigos postales internacionales
+  country: z.string().max(30).optional(),
   notes: z.string().optional(),
-  status: z.enum(['active', 'inactive', 'suspended']).optional(),
+  status: z.enum(['Active', 'Inactive', 'Blocked']).optional(),
 });
 
-export const ClientUpdateSchema = ClientCreateSchema.partial();
+export const ClientUpdateSchema = z.object({
+  client_type: z.enum(['Individual', 'Business']).optional(),
+  taxpayer_type: z.enum(['Physical Person', 'Legal Entity']).optional(),
+  business_name: z.string().max(40).optional(),
+  first_name: z.string().max(20).optional(),
+  last_name: z.string().max(20).optional(),
+  tax_id: z.string().max(20).optional(),
+  email: z.string().email().max(30).optional(),
+  phone: z.string().max(20).optional(),
+  mobile_phone: z.string().max(20).optional(),
+  address: z.string().optional(),
+  city: z.string().max(30).optional(),
+  state: z.string().max(30).optional(),
+  zip_code: z.string().max(25).optional(),
+  country: z.string().max(30).optional(),
+  notes: z.string().optional(),
+  status: z.enum(['Active', 'Inactive', 'Blocked']).optional(),
+}).refine(
+  (data) => {
+    // Si se especifica el tipo, validar campos requeridos
+    if (data.client_type === 'Individual') {
+      return data.first_name || data.last_name;
+    }
+    if (data.client_type === 'Business') {
+      return !!data.business_name;
+    }
+    return true;
+  },
+  {
+    message: "Individual clients require name, Business clients require business name",
+  }
+);
 
 export const SaleReturnCreateSchema = z.object({
   sale_id: z.number().positive(),
@@ -94,7 +125,6 @@ export const SaleReturnCreateSchema = z.object({
 });
 
 export const SaleReturnUpdateSchema = SaleReturnCreateSchema.partial();
-
 
 // API Response Types
 export interface ApiResponse<T> {

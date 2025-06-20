@@ -209,13 +209,49 @@ export class SalesService {
   static async createClient(clientData: ClientCreateInput) {
     const supabase = await this.getSupabaseClient();
     
+    // Asegurarse de NO incluir client_id en los datos
+    const { client_id, ...dataWithoutId } = clientData as any;
+    
+    // Limpiar datos - remover campos undefined, null o strings vacíos
+    const cleanedData = Object.entries(dataWithoutId).reduce((acc, [key, value]) => {
+      if (value !== undefined && value !== null && value !== '') {
+        acc[key] = value;
+      }
+      return acc;
+    }, {} as any);
+    
+    // Asegurar que status tenga un valor por defecto si no se proporciona
+    if (!cleanedData.status) {
+      cleanedData.status = 'Active';
+    }
+    
     const { data: client, error } = await supabase
       .from("clients")
-      .insert(clientData)
+      .insert(cleanedData)
       .select()
       .single();
 
     if (error) {
+      console.error('Create client error:', error);
+      
+      // Manejo específico de errores
+      if (error.code === '23505') { // PostgreSQL unique violation
+        if (error.message.includes('email')) {
+          throw new Error('A client with this email already exists');
+        }
+        if (error.message.includes('tax_id')) {
+          throw new Error('A client with this tax ID already exists');
+        }
+        if (error.message.includes('clients_pkey')) {
+          throw new Error('Client ID conflict - please try again');
+        }
+        throw new Error('A client with these details already exists');
+      }
+      
+      if (error.code === '23514') { // Check constraint violation
+        throw new Error('Invalid data: please check all required fields');
+      }
+      
       throw new Error(`Failed to create client: ${error.message}`);
     }
 
@@ -225,17 +261,41 @@ export class SalesService {
   static async updateClient(id: number, clientData: ClientUpdateInput) {
     const supabase = await this.getSupabaseClient();
     
+    // Asegurarse de NO incluir client_id en los datos de actualización
+    const { client_id, ...dataWithoutId } = clientData as any;
+    
+    // Limpiar datos - remover campos undefined, null o strings vacíos
+    const cleanedData = Object.entries(dataWithoutId).reduce((acc, [key, value]) => {
+      if (value !== undefined && value !== null && value !== '') {
+        acc[key] = value;
+      }
+      return acc;
+    }, {} as any);
+    
     const { data: client, error } = await supabase
       .from("clients")
-      .update(clientData)
+      .update(cleanedData)
       .eq('client_id', id)
       .select()
       .single();
 
     if (error) {
+      console.error('Update client error:', error);
+      
       if (error.code === 'PGRST116') {
         throw new Error('Client not found');
       }
+      
+      if (error.code === '23505') { // PostgreSQL unique violation
+        if (error.message.includes('email')) {
+          throw new Error('A client with this email already exists');
+        }
+        if (error.message.includes('tax_id')) {
+          throw new Error('A client with this tax ID already exists');
+        }
+        throw new Error('A client with these details already exists');
+      }
+      
       throw new Error(`Failed to update client: ${error.message}`);
     }
 
