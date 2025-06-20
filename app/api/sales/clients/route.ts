@@ -1,42 +1,53 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 
-// GET /api/sales/clients/[id] - Obtener un cliente por ID
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+// GET /api/sales/clients - Obtener todos los clientes con filtros opcionales y paginación
+export async function GET(request: NextRequest) {
   try {
     const supabase = await createClient();
-    const clientId = parseInt(params.id);
+    const { searchParams } = new URL(request.url);
     
-    if (isNaN(clientId)) {
-      return NextResponse.json(
-        { error: 'Invalid client ID' },
-        { status: 400 }
-      );
+    // Parámetros de paginación
+    const page = parseInt(searchParams.get('page') || '1');
+    const limit = parseInt(searchParams.get('limit') || '10');
+    const offset = (page - 1) * limit;
+    
+    // Filtros
+    const status = searchParams.get('status');
+    const search = searchParams.get('search');
+    
+    // Construir query base
+    let query = supabase
+      .from('clients')
+      .select('*', { count: 'exact' });
+    
+    // Aplicar filtro de estado si existe
+    if (status && status !== 'All') {
+      query = query.eq('status', status);
     }
     
-    const { data: client, error } = await supabase
-      .from('clients')
-      .select('*')
-      .eq('client_id', clientId)
-      .single();
+    // Aplicar búsqueda si existe
+    if (search) {
+      query = query.or(`business_name.ilike.%${search}%,first_name.ilike.%${search}%,last_name.ilike.%${search}%,email.ilike.%${search}%,tax_id.ilike.%${search}%`);
+    }
+    
+    // Aplicar paginación y ordenamiento
+    query = query
+      .order('client_id', { ascending: false })
+      .range(offset, offset + limit - 1);
+    
+    const { data, error, count } = await query;
     
     if (error) {
-      if (error.code === 'PGRST116') {
-        return NextResponse.json(
-          { error: 'Client not found' },
-          { status: 404 }
-        );
-      }
+      console.error('Error fetching clients:', error);
       return NextResponse.json(
-        { error: 'Error fetching client', details: error.message },
+        { error: 'Error fetching clients', details: error.message },
         { status: 500 }
       );
     }
     
-    const mappedClient = {
+    // Mapear los datos para usar client_id en minúsculas en el frontend
+    const mappedData = data?.map(client => ({
       client_id: client.client_id,
       client_type: client.client_type,
       taxpayer_type: client.taxpayer_type,
@@ -56,9 +67,17 @@ export async function GET(
       status: client.status,
       created_at: client.created_at,
       updated_at: client.updated_at
-    };
+    })) || [];
     
-    return NextResponse.json(mappedClient);
+    return NextResponse.json({
+      data: mappedData,
+      pagination: {
+        page,
+        limit,
+        total: count || 0,
+        totalPages: Math.ceil((count || 0) / limit)
+      }
+    });
     
   } catch (error) {
     console.error('Unexpected error:', error);
@@ -69,36 +88,11 @@ export async function GET(
   }
 }
 
-// PUT /api/sales/clients/[id] - Actualizar un cliente
-export async function PUT(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+// POST /api/sales/clients - Crear un nuevo cliente
+export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient();
-    const clientId = parseInt(params.id);
     const body = await request.json();
-    
-    if (isNaN(clientId)) {
-      return NextResponse.json(
-        { error: 'Invalid client ID' },
-        { status: 400 }
-      );
-    }
-    
-    // Verificar que el cliente existe
-    const { data: existingClient, error: checkError } = await supabase
-      .from('clients')
-      .select('client_id')
-      .eq('client_id', clientId)
-      .single();
-    
-    if (checkError || !existingClient) {
-      return NextResponse.json(
-        { error: 'Client not found' },
-        { status: 404 }
-      );
-    }
     
     // Validación básica
     if (!body.email || !body.tax_id || !body.phone || !body.address || 
@@ -124,30 +118,30 @@ export async function PUT(
       );
     }
     
-    // Verificar que email o tax_id no estén siendo usados por otro cliente
-    const { data: duplicates, error: dupError } = await supabase
+    // Verificar si el email o tax_id ya existen
+    const { data: existingClients, error: checkError } = await supabase
       .from('clients')
       .select('client_id')
       .or(`email.eq.${body.email},tax_id.eq.${body.tax_id}`)
-      .neq('client_id', clientId);
+      .limit(1);
     
-    if (dupError) {
-      console.error('Error checking duplicates:', dupError);
+    if (checkError) {
+      console.error('Error checking existing clients:', checkError);
       return NextResponse.json(
         { error: 'Error validating client data' },
         { status: 500 }
       );
     }
     
-    if (duplicates && duplicates.length > 0) {
+    if (existingClients && existingClients.length > 0) {
       return NextResponse.json(
-        { error: 'Another client already has this email or tax ID' },
+        { error: 'A client with this email or tax ID already exists' },
         { status: 400 }
       );
     }
     
-    // Preparar datos para actualizar (excluir client_id/client_ID)
-    const updateData = {
+    // Preparar datos para insertar (client_id se genera automáticamente)
+    const clientData = {
       client_type: body.client_type || 'Individual',
       taxpayer_type: body.taxpayer_type || 'Physical Person',
       business_name: body.business_name || null,
@@ -161,104 +155,52 @@ export async function PUT(
       city: body.city,
       state: body.state,
       zip_code: body.zip_code,
-      country: body.country,
+      country: body.country || 'Mexico',
       notes: body.notes || null,
       status: body.status || 'Active'
     };
     
-    const { data: updatedClient, error: updateError } = await supabase
+    const { data: newClient, error: insertError } = await supabase
       .from('clients')
-      .update(updateData)
-      .eq('client_id', clientId)
+      .insert(clientData)
       .select()
       .single();
     
-    if (updateError) {
-      console.error('Error updating client:', updateError);
+    if (insertError) {
+      console.error('Error inserting client:', insertError);
       return NextResponse.json(
-        { error: 'Error updating client', details: updateError.message },
+        { error: 'Error creating client', details: insertError.message },
         { status: 500 }
       );
     }
     
     // Mapear la respuesta
     const mappedClient = {
-      client_id: updatedClient.client_id,
-      client_type: updatedClient.client_type,
-      taxpayer_type: updatedClient.taxpayer_type,
-      business_name: updatedClient.business_name,
-      first_name: updatedClient.first_name,
-      last_name: updatedClient.last_name,
-      tax_id: updatedClient.tax_id,
-      email: updatedClient.email,
-      phone: updatedClient.phone,
-      mobile_phone: updatedClient.mobile_phone,
-      address: updatedClient.address,
-      city: updatedClient.city,
-      state: updatedClient.state,
-      zip_code: updatedClient.zip_code,
-      country: updatedClient.country,
-      notes: updatedClient.notes,
-      status: updatedClient.status,
-      created_at: updatedClient.created_at,
-      updated_at: updatedClient.updated_at
+      client_id: newClient.client_id,
+      client_type: newClient.client_type,
+      taxpayer_type: newClient.taxpayer_type,
+      business_name: newClient.business_name,
+      first_name: newClient.first_name,
+      last_name: newClient.last_name,
+      tax_id: newClient.tax_id,
+      email: newClient.email,
+      phone: newClient.phone,
+      mobile_phone: newClient.mobile_phone,
+      address: newClient.address,
+      city: newClient.city,
+      state: newClient.state,
+      zip_code: newClient.zip_code,
+      country: newClient.country,
+      notes: newClient.notes,
+      status: newClient.status,
+      created_at: newClient.created_at,
+      updated_at: newClient.updated_at
     };
     
     return NextResponse.json({
       success: true,
-      message: 'Client updated successfully',
+      message: 'Client created successfully',
       data: mappedClient
-    });
-    
-  } catch (error) {
-    console.error('Unexpected error:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
-  }
-}
-
-// DELETE /api/sales/clients/[id] - Eliminar un cliente (cambiar estado a Inactive)
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
-  try {
-    const supabase = await createClient();
-    const clientId = parseInt(params.id);
-    
-    if (isNaN(clientId)) {
-      return NextResponse.json(
-        { error: 'Invalid client ID' },
-        { status: 400 }
-      );
-    }
-    
-    // En lugar de eliminar físicamente, cambiar el estado a Inactive
-    const { data, error } = await supabase
-      .from('clients')
-      .update({ status: 'Inactive' })
-      .eq('client_id', clientId)
-      .select()
-      .single();
-    
-    if (error) {
-      if (error.code === 'PGRST116') {
-        return NextResponse.json(
-          { error: 'Client not found' },
-          { status: 404 }
-        );
-      }
-      return NextResponse.json(
-        { error: 'Error deactivating client', details: error.message },
-        { status: 500 }
-      );
-    }
-    
-    return NextResponse.json({
-      success: true,
-      message: 'Client deactivated successfully'
     });
     
   } catch (error) {
