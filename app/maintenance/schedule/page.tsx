@@ -1,30 +1,145 @@
-'use client';
+"use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from "react";
 
-import Schedule from '@/components/Maintenance/schedule';
-import ScheduleServices from '@/components/Maintenance/ScheduleServices';
-import ScheduleAppointment from '@/components/Maintenance/ScheduleAppointment';
-import ScheduleResults from '@/components/Maintenance/ScheduleResults';
+import ScheduleAppointment from "@/components/Maintenance/ScheduleAppointment";
+import ScheduleResults from "@/components/Maintenance/ScheduleResults";
+import ScheduleServices from "@/components/Maintenance/ScheduleServices";
+
+type Mechanic = {
+  id: string;
+  first_name: string;
+  last_name: string;
+};
+
+function Schedule({
+  client,
+  setClient,
+  car,
+  setCar,
+  setStep,
+}: {
+  client: string;
+  setClient: (value: string) => void;
+  car: string;
+  setCar: (value: string) => void;
+  setStep: (step: number) => void;
+}) {
+  const [brand, setBrand] = React.useState("");
+  const [model, setModel] = React.useState("");
+  const [year, setYear] = React.useState("");
+  const [plates, setPlates] = React.useState("");
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!client || !brand || !model || !year || !plates) {
+      alert("Por favor, completa todos los campos");
+      return;
+    }
+    setCar(`${brand} ${model} ${year} - ${plates}`);
+    setStep(2);
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="text-gray-800">
+      {/* ... Inputs como los tienes ... */}
+      <div className="grid grid-cols-2 gap-6">
+        {/* Cliente */}
+        <div>
+          <label className="block font-semibold mb-2">Nombre del cliente</label>
+          <input
+            type="text"
+            value={client}
+            onChange={(e) => setClient(e.target.value)}
+            className="w-full border border-gray-300 rounded px-4 py-2 focus:outline-none focus:ring-2 focus:ring-red-600"
+            placeholder="Ej. Juan Pérez"
+            required
+          />
+        </div>
+        {/* Marca */}
+        <div>
+          <label className="block font-semibold mb-2">Marca del auto</label>
+          <input
+            type="text"
+            value={brand}
+            onChange={(e) => setBrand(e.target.value)}
+            className="w-full border border-gray-300 rounded px-4 py-2 focus:outline-none focus:ring-2 focus:ring-red-600"
+            placeholder="Ej. Toyota"
+            required
+          />
+        </div>
+        {/* Modelo */}
+        <div>
+          <label className="block font-semibold mb-2">Modelo del auto</label>
+          <input
+            type="text"
+            value={model}
+            onChange={(e) => setModel(e.target.value)}
+            className="w-full border border-gray-300 rounded px-4 py-2 focus:outline-none focus:ring-2 focus:ring-red-600"
+            placeholder="Ej. Corolla"
+            required
+          />
+        </div>
+        {/* Año */}
+        <div>
+          <label className="block font-semibold mb-2">Año del auto</label>
+          <input
+            type="number"
+            value={year}
+            onChange={(e) => setYear(e.target.value)}
+            className="w-full border border-gray-300 rounded px-4 py-2 focus:outline-none focus:ring-2 focus:ring-red-600"
+            placeholder="Ej. 2018"
+            min="1900"
+            max={new Date().getFullYear()}
+            required
+          />
+        </div>
+        {/* Placas */}
+        <div className="col-span-2">
+          <label className="block font-semibold mb-2">Placas</label>
+          <input
+            type="text"
+            value={plates}
+            onChange={(e) => setPlates(e.target.value)}
+            className="w-full border border-gray-300 rounded px-4 py-2 focus:outline-none focus:ring-2 focus:ring-red-600"
+            placeholder="Ej. ABC1234"
+            required
+          />
+        </div>
+      </div>
+
+      <div className="mt-6">
+        <button
+          type="submit"
+          className="bg-red-600 text-white font-semibold px-6 py-2 rounded hover:bg-red-700 transition"
+        >
+          Guardar y continuar
+        </button>
+      </div>
+    </form>
+  );
+}
 
 export default function SchedulePage() {
   const [step, setStep] = useState<number>(1);
-  const [client, setClient] = useState<string>('');
-  const [clients, setClients] = useState<any[]>(['']);
-  const [car, setCar] = useState<string>('');
-  const [selectedServices, setSelectedServices] = useState<any[]>([]);
-  const [mechanic, setMechanic] = useState<string>('Any');
-  const [mechanics, setMechanics] = useState<any[]>([]);
+  const [client, setClient] = useState<string>("");
+  const [clients, setClients] = useState<string[]>([]);
+  const [car, setCar] = useState<string>("");
+  const [selectedServices, setSelectedServices] = useState<string[]>([]);
+  const [mechanic, setMechanic] = useState<string>("Any");
+  const [mechanics, setMechanics] = useState<Mechanic[]>([]);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
-  const [selectedTime, setSelectedTime] = useState<string>('');
-  const [assignedMechanic, setAssignedMechanic] = useState<string>('');
-  const [appointmentId, setAppointmentId] = useState<string>('');
+  const [selectedTime, setSelectedTime] = useState<string>("");
+  const [assignedMechanic, setAssignedMechanic] = useState<
+    Mechanic | null | undefined
+  >(null);
+  const [appointmentId, setAppointmentId] = useState<string>("");
 
   const services = [
-    { name: 'Oil Change', price: 29.99 },
-    { name: 'Brake Inspection', price: 49.99 },
-    { name: 'Engine Diagnostic', price: 89.99 },
-    { name: 'Tire Rotation', price: 19.99 },
+    { name: "Oil Change", price: 29.99 },
+    { name: "Brake Inspection", price: 49.99 },
+    { name: "Engine Diagnostic", price: 89.99 },
+    { name: "Tire Rotation", price: 19.99 },
   ];
 
   const total = services
@@ -32,17 +147,29 @@ export default function SchedulePage() {
     .reduce((sum, s) => sum + s.price, 0);
 
   useEffect(() => {
-    if (mechanic === 'Any' && selectedDate && selectedTime) {
-      const availableMechanics = mechanics.filter((m) => m !== 'Any');
+    if (
+      mechanic === "Any" &&
+      selectedDate &&
+      selectedTime &&
+      mechanics.length > 0
+    ) {
+      const availableMechanics = mechanics.filter((m) => m.id !== "Any");
+      if (availableMechanics.length === 0) {
+        setAssignedMechanic(null);
+        return;
+      }
       const randomMechanic =
         availableMechanics[
           Math.floor(Math.random() * availableMechanics.length)
         ];
       setAssignedMechanic(randomMechanic);
-    } else if (mechanic !== 'Any') {
-      setAssignedMechanic(mechanic);
+    } else if (mechanic !== "Any") {
+      const found = mechanics.find((m) => m.id === mechanic);
+      setAssignedMechanic(found || null);
+    } else {
+      setAssignedMechanic(null);
     }
-  }, [mechanic, selectedDate, selectedTime]);
+  }, [mechanic, selectedDate, selectedTime, mechanics]);
 
   useEffect(() => {
     if (step === 4) {
@@ -52,38 +179,39 @@ export default function SchedulePage() {
   }, [step]);
 
   async function getClients(): Promise<void> {
-    const response = await fetch(
-      'http://localhost:3000/api/maintenance/schedule/clients'
-    );
-    const data = await response.json();
+    try {
+      const response = await fetch("../api/maintenance/schedule/clients");
+      const data = await response.json();
 
-    if (data.error) {
-      console.error(data.error);
-    } else {
-      setClients(data.clients);
+      if (data.error) {
+        console.error(data.error);
+      } else {
+        setClients(data.clients);
+      }
+    } catch (e) {
+      console.error(e);
     }
   }
 
   async function getMechanics(): Promise<void> {
-    const response = await fetch(
-      'http://localhost:3000/api/maintenance/schedule/mechanics'
-    );
-    const data = await response.json();
+    try {
+      const response = await fetch("../api/maintenance/schedule/mechanics");
+      const data = await response.json();
 
-    if (data.error) {
-      console.error(data.error);
-    } else {
-      setMechanics(data.data);
+      if (data.error) {
+        console.error(data.error);
+      } else {
+        // Espera que data.data sea array de {id, name}
+        setMechanics(data.data);
+      }
+    } catch (e) {
+      console.error(e);
     }
-
-    console.log(mechanics);
   }
 
   useEffect(() => {
-    (async () => {
-      await getClients();
-      await getMechanics();
-    })();
+    getClients();
+    getMechanics();
   }, []);
 
   return (
@@ -100,8 +228,7 @@ export default function SchedulePage() {
             setCar={setCar}
             setClient={setClient}
             setStep={setStep}
-            clients={clients}
-          ></Schedule>
+          />
         )}
 
         {step === 2 && (
@@ -113,7 +240,7 @@ export default function SchedulePage() {
             setMechanic={setMechanic}
             setStep={setStep}
             total={total}
-          ></ScheduleServices>
+          />
         )}
 
         {step === 3 && (
@@ -123,7 +250,7 @@ export default function SchedulePage() {
             setSelectedDate={setSelectedDate}
             setSelectedTime={setSelectedTime}
             setStep={setStep}
-          ></ScheduleAppointment>
+          />
         )}
 
         {step === 4 && (
@@ -136,7 +263,7 @@ export default function SchedulePage() {
             selectedServices={selectedServices}
             selectedTime={selectedTime}
             total={total}
-          ></ScheduleResults>
+          />
         )}
       </div>
     </main>
