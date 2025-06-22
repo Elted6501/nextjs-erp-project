@@ -1,26 +1,32 @@
-import React, { useState } from 'react';
 import {
   addDays,
+  eachDayOfInterval,
+  endOfMonth,
+  endOfWeek,
   format,
+  isAfter,
+  isBefore,
   isSameDay,
+  isSameMonth,
   isToday,
   startOfMonth,
-  endOfMonth,
   startOfWeek,
-  endOfWeek,
-  isSameMonth,
-  isBefore,
-  isAfter,
-  eachDayOfInterval,
-} from 'date-fns';
-import { CalendarMaintenance } from '@/Types/Maintenance/schedule';
+} from "date-fns";
+import { useState } from "react";
+
+type CalendarProps = {
+  selected?: Date;
+  onSelect: (date: Date) => void;
+  fromDate?: Date;
+  toDate?: Date;
+};
 
 function Calendar({
   selected,
   onSelect,
   fromDate = new Date(),
   toDate = addDays(new Date(), 30),
-}: CalendarMaintenance) {
+}: CalendarProps) {
   const [currentMonth, setCurrentMonth] = useState(new Date());
 
   const start = startOfWeek(startOfMonth(currentMonth), { weekStartsOn: 0 });
@@ -40,7 +46,7 @@ function Calendar({
           ‹
         </button>
         <span className="font-semibold text-lg text-red-600">
-          {format(currentMonth, 'MMMM yyyy')}
+          {format(currentMonth, "MMMM yyyy")}
         </span>
         <button
           onClick={() => setCurrentMonth(addDays(currentMonth, 30))}
@@ -50,7 +56,7 @@ function Calendar({
         </button>
       </div>
       <div className="grid grid-cols-7 text-center font-medium text-sm text-red-500">
-        {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((d) => (
+        {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d) => (
           <div key={d}>{d}</div>
         ))}
       </div>
@@ -66,17 +72,17 @@ function Calendar({
               disabled={isDisabledDay}
               onClick={() => onSelect(date)}
               className={`p-2 m-1 rounded-full transition-all
-                ${isDisabledDay ? 'text-gray-400' : ''}
+                ${isDisabledDay ? "text-gray-400" : ""}
                 ${
                   isSelected
-                    ? 'bg-gradient-to-br from-red-700 to-red-500 text-white shadow-lg'
-                    : ''
+                    ? "bg-gradient-to-br from-red-700 to-red-500 text-white shadow-lg"
+                    : ""
                 }
-                ${!isInMonth ? 'text-gray-400' : ''}
-                ${isToday(date) ? 'border border-red-500' : ''}
+                ${!isInMonth ? "text-gray-400" : ""}
+                ${isToday(date) ? "border border-red-500" : ""}
                 hover:bg-red-100`}
             >
-              {format(date, 'd')}
+              {format(date, "d")}
             </button>
           );
         })}

@@ -1,5 +1,14 @@
-import { MechanicsScheduleType } from '@/Types/Maintenance/schedule';
-import React from 'react';
+type Mechanic = {
+  employee_id: string;
+  first_name: string;
+  last_name: string;
+};
+
+type MechanicsScheduleType = {
+  mechanic: string;
+  mechanics: Mechanic[];
+  setMechanic: (val: string) => void;
+};
 
 const MechanicsSchedule = ({
   mechanic,

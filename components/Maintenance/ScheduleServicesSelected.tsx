@@ -1,5 +1,4 @@
-import { ScheduleServicesSelectedType } from '@/Types/Maintenance/schedule';
-import React from 'react';
+import { ScheduleServicesSelectedType } from "@/Types/Maintenance/schedule";
 
 const ScheduleServicesSelected = ({
   services,

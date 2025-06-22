@@ -1,8 +1,18 @@
-import { ScheduleServicesType } from '@/Types/Maintenance/schedule';
-import React, { useState } from 'react';
-import ServicesSchedule from './ServicesSchedule';
-import MechanicsSchedule from './MechanicsSchedule';
-import ScheduleServicesSelected from './ScheduleServicesSelected';
+import MechanicsSchedule from "./MechanicsSchedule";
+import ScheduleServicesSelected from "./ScheduleServicesSelected";
+import ServicesSchedule from "./ServicesSchedule";
+
+type Service = { name: string; price: number };
+
+type ScheduleServicesType = {
+  setStep: (step: number) => void;
+  mechanic: string;
+  setMechanic: (val: string) => void;
+  total: number;
+  selectedServices: string[];
+  setSelectedServices: (services: string[]) => void;
+  mechanics: any[];
+};
 
 const ScheduleServices = ({
   setStep,
@@ -13,33 +23,30 @@ const ScheduleServices = ({
   setSelectedServices,
   mechanics,
 }: ScheduleServicesType) => {
+  const services: Service[] = [
+    { name: "Oil Change", price: 29.99 },
+    { name: "Brake Inspection", price: 49.99 },
+    { name: "Engine Diagnostic", price: 89.99 },
+    { name: "Tire Rotation", price: 19.99 },
+  ];
+
   return (
     <div className="space-y-6">
       <ServicesSchedule
         selectedServices={selectedServices}
         setSelectedServices={setSelectedServices}
-        services={[
-          { name: 'Oil Change', price: 29.99 },
-          { name: 'Brake Inspection', price: 49.99 },
-          { name: 'Engine Diagnostic', price: 89.99 },
-          { name: 'Tire Rotation', price: 19.99 },
-        ]}
-      ></ServicesSchedule>
+        services={services}
+      />
       <MechanicsSchedule
         mechanic={mechanic}
         mechanics={mechanics}
         setMechanic={setMechanic}
-      ></MechanicsSchedule>
+      />
       <ScheduleServicesSelected
         selectedServices={selectedServices}
-        services={[
-          { name: 'Oil Change', price: 29.99 },
-          { name: 'Brake Inspection', price: 49.99 },
-          { name: 'Engine Diagnostic', price: 89.99 },
-          { name: 'Tire Rotation', price: 19.99 },
-        ]}
+        services={services}
         total={total}
-      ></ScheduleServicesSelected>
+      />
       <button
         onClick={() => setStep(3)}
         disabled={selectedServices.length === 0}

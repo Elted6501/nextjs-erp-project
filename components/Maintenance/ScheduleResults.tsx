@@ -1,6 +1,20 @@
-import { ScheduleResultsType } from '@/Types/Maintenance/schedule';
-import { useRouter } from 'next/navigation';
-import React from 'react';
+import { useRouter } from "next/navigation";
+
+type Mechanic = {
+  first_name: string;
+  last_name: string;
+};
+
+type ScheduleResultsType = {
+  appointmentId: string;
+  client: string;
+  car: string;
+  selectedServices: string[];
+  total: number;
+  selectedDate?: Date;
+  selectedTime: string;
+  assignedMechanic?: Mechanic | null | undefined;
+};
 
 const ScheduleResults = (props: ScheduleResultsType) => {
   const router = useRouter();
@@ -24,7 +38,7 @@ const ScheduleResults = (props: ScheduleResultsType) => {
           Services
         </div>
         <div className="text-sm border-b border-red-100 pb-3 mb-4">
-          {props.selectedServices.join(', ') || 'None'}
+          {props.selectedServices.join(", ") || "None"}
         </div>
 
         <div className="grid grid-cols-2 gap-x-8 text-sm font-semibold text-red-600 border-b border-red-200 pb-2 mb-2">
@@ -39,12 +53,16 @@ const ScheduleResults = (props: ScheduleResultsType) => {
         </div>
 
         <div className="text-sm font-semibold text-red-600 pb-1">Mechanic</div>
-        <div className="text-sm">{props.assignedMechanic}</div>
+        <div className="text-sm">
+          {props.assignedMechanic
+            ? `${props.assignedMechanic.first_name} ${props.assignedMechanic.last_name}`
+            : "No mechanic assigned"}
+        </div>
       </div>
 
       <div className="flex space-x-4">
         <button
-          onClick={() => router.push('/maintenance')}
+          onClick={() => router.push("/maintenance")}
           className="bg-gradient-to-r from-red-700 to-red-600 hover:from-red-800 hover:to-red-700 px-5 py-2 rounded-lg text-white text-sm font-semibold shadow"
         >
           Finish
@@ -52,10 +70,10 @@ const ScheduleResults = (props: ScheduleResultsType) => {
         <button
           onClick={() => {
             const printContents = document.querySelector(
-              'div.bg-white.border'
+              "div.bg-white.border"
             )?.innerHTML;
             const originalContents = document.body.innerHTML;
-            document.body.innerHTML = printContents ?? '';
+            document.body.innerHTML = printContents ?? "";
             window.print();
             document.body.innerHTML = originalContents;
             window.location.reload();

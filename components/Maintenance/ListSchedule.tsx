@@ -1,5 +1,14 @@
-import { clients, ScheduleListType } from '@/Types/Maintenance/schedule';
-import React from 'react';
+type Client = {
+  client_id: string;
+  first_name: string;
+  // otros campos que uses
+};
+
+type ScheduleListType = {
+  values: string[] | Client[];
+  value: string;
+  setValue: (val: string) => void;
+};
 
 const ListSchedule = ({ setValue, value, values }: ScheduleListType) => {
   return (
@@ -11,10 +20,16 @@ const ListSchedule = ({ setValue, value, values }: ScheduleListType) => {
         onChange={(e) => setValue(e.target.value)}
       >
         <option value="">-- Select Car --</option>
-        {typeof values[0] === 'string'
-          ? (values as string[]).map((v) => <option value={v}>{v}</option>)
-          : (values as clients[]).map((v) => (
-              <option value={v.client_id}>{v.first_name}</option>
+        {typeof values[0] === "string"
+          ? (values as string[]).map((v) => (
+              <option key={v} value={v}>
+                {v}
+              </option>
+            ))
+          : (values as Client[]).map((v) => (
+              <option key={v.client_id} value={v.client_id}>
+                {v.first_name}
+              </option>
             ))}
       </select>
     </div>

@@ -1,7 +1,13 @@
-import React from 'react';
-import Calendar from './CalendarComponent';
-import { ScheduleAppointmentType } from '@/Types/Maintenance/schedule';
-import ScheduleAvailableTimes from './ScheduleAvailableTimes';
+import Calendar from "./CalendarComponent";
+import ScheduleAvailableTimes from "./ScheduleAvailableTimes";
+
+type ScheduleAppointmentType = {
+  selectedDate?: Date;
+  setSelectedDate: (date: Date) => void;
+  selectedTime: string;
+  setSelectedTime: (time: string) => void;
+  setStep: (step: number) => void;
+};
 
 const ScheduleAppointment = ({
   selectedDate,
@@ -10,36 +16,33 @@ const ScheduleAppointment = ({
   setSelectedTime,
   setStep,
 }: ScheduleAppointmentType) => {
+  const handleNext = () => {
+    if (!selectedDate) {
+      alert("Por favor selecciona una fecha");
+      return;
+    }
+    if (!selectedTime) {
+      alert("Por favor selecciona una hora");
+      return;
+    }
+    setStep(4);
+  };
+
   return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
-        <div>
-          <label className="block mb-2 text-red-700 font-semibold">
-            Choose Date
-          </label>
-          <div className="bg-gray-50 rounded-xl border border-gray-300 shadow-md p-4 h-full">
-            <Calendar selected={selectedDate} onSelect={setSelectedDate} />
-          </div>
-        </div>
+    <div>
+      <div className="grid md:grid-cols-2 gap-6 mb-6">
+        <Calendar selected={selectedDate} onSelect={setSelectedDate} />
         <ScheduleAvailableTimes
           selectedTime={selectedTime}
           setSelectedTime={setSelectedTime}
-        ></ScheduleAvailableTimes>
+        />
       </div>
-      {selectedDate && selectedTime && (
-        <div className="bg-gray-100 rounded-xl border border-gray-300 shadow-md p-4 text-gray-800 font-semibold">
-          <p>
-            <strong>Selected:</strong> {selectedDate.toLocaleDateString()} at{' '}
-            {selectedTime}
-          </p>
-        </div>
-      )}
+
       <button
-        onClick={() => setStep(4)}
-        disabled={!selectedDate || !selectedTime}
-        className="bg-gradient-to-r from-red-700 to-red-600 hover:from-red-800 hover:to-red-700 px-6 py-3 rounded-xl text-white disabled:opacity-40"
+        onClick={handleNext}
+        className="bg-red-600 text-white font-semibold px-6 py-2 rounded hover:bg-red-700 transition"
       >
-        Next
+        Guardar y continuar
       </button>
     </div>
   );
