@@ -36,7 +36,7 @@ export default function SchedulePage() {
       const availableMechanics = mechanics.filter((m) => m !== 'Any');
       const randomMechanic =
         availableMechanics[
-          Math.floor(Math.random() * availableMechanics.length)
+        Math.floor(Math.random() * availableMechanics.length)
         ];
       setAssignedMechanic(randomMechanic);
     } else if (mechanic !== 'Any') {
