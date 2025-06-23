@@ -8,6 +8,7 @@ import { useEffect, useState } from "react";
 import { FaFileExcel, FaSearch, FaEye, FaTimes, FaRegCheckCircle, FaPlus } from "react-icons/fa";
 import styles from "@/app/finance/page.module.css";
 import { useRouter } from "next/navigation";
+import toExcel from "@/lib/xlsx/toExcel";
 
 export default function PendingToPayPage() {
   const router = useRouter();
@@ -49,6 +50,34 @@ export default function PendingToPayPage() {
         console.error("Error fetching pending to pay data:", error);
       });
   }, []);
+
+  const getPendingsExcel = async () => {
+    const sheetName = "Pending to pay";
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const content = pendingToPay.map((item: any) => ({
+      OrderId: item.OrderId,
+      Product: item.Product,
+      Status: item.Status,
+      DueDate: item.DueDate,
+      PayDate: item.PayDate,
+    }));
+
+    const columns = [
+      { label: "Order Id", value: "OrderId" },
+      { label: "Product", value: "Product" },
+      { label: "Status", value: "Status" },
+      { label: "Due Date", value: "DueDate" },
+      { label: "Pay Date", value: "PayDate" },
+    ];
+
+    try {
+      toExcel(sheetName, columns, content);
+      alert("Excel file created successfully");
+    } catch (error) {
+      console.error("Error creating Excel file:", error);
+      alert("Failed to create Excel file");
+    }
+  };
 
   const handleView = (id: string) => {
     router.push(`/finance/pending-to-pay/${id}`);
@@ -112,7 +141,7 @@ export default function PendingToPayPage() {
                 </div>
               }
               className="bg-[#a01217] text-white hover:bg-[#8b0f14] transition-colors p-2 w-fit h-fit"
-              onClick={() => alert("Excel")}
+              onClick={getPendingsExcel}
             />
           </div>
         </div>
