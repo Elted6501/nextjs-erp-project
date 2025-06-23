@@ -15,6 +15,15 @@ export default function PendingToPayPage() {
   const [description, setDescription] = useState("");
   const [pendingToPay, setPendingToPay] = useState([]);
 
+  type PendingToPayItem = {
+    id: string;
+    OrderId: string;
+    Product: string;
+    Status: string;
+    DueDate: string;
+    PayDate: string;
+  };
+
   const warehouseOptions = [
     { label: "Pending", value: "pending" },
     { label: "Paid", value: "paid" },
