@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, ReactNode } from 'react';
+import { useEffect, ReactNode, useRef } from 'react';
 import ReactDOM from 'react-dom';
-import Button from "./Button";
+import Button from './Button';
 
 interface AlertDialogProps {
   title?: string;
@@ -26,9 +26,12 @@ export default function AlertDialog(props: AlertDialogProps) {
     onNeutral,
     onNeutralLabel,
     onSuccess,
-    onSuccessLabel = 'Aceptar'
+    onSuccessLabel = 'Aceptar',
   } = props;
 
+  const modalRef = useRef<HTMLDivElement>(null);
+
+  // Bloquea scroll del body
   useEffect(() => {
     document.body.style.overflow = 'hidden';
     return () => {
@@ -36,11 +39,43 @@ export default function AlertDialog(props: AlertDialogProps) {
     };
   }, []);
 
-  const modal = (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(0,0,0,0.3)] backdrop-blur-sm">
-      <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
+  // Cerrar con tecla Escape
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && onCancel) {
+        onCancel();
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [onCancel]);
+
+  // Cerrar por clic fuera
+  const handleBackdropClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (modalRef.current && !modalRef.current.contains(e.target as Node)) {
+      onCancel?.();
+    }
+  };
+
+  // Portal target
+  if (typeof window === 'undefined') return null;
+  const container = document.getElementById('modal-root');
+  if (!container) return null;
+
+  return ReactDOM.createPortal(
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(0,0,0,0.3)] backdrop-blur-sm"
+      onClick={handleBackdropClick}
+    >
+      <div
+        ref={modalRef}
+        className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md"
+        onClick={(e) => e.stopPropagation()} // Evita que clics internos cierren el modal
+      >
         {icon && <div className="flex justify-center text-[#a01217] mb-4">{icon}</div>}
-        {title && <h2 className="flex justify-center uppercase text-lg font-bold mb-4 text-[#a01217]">{title}</h2>}
+        {title && (
+          <h2 className="flex justify-center uppercase text-lg font-bold mb-4 text-[#a01217]">{title}</h2>
+        )}
         <p className="mb-6">{content}</p>
         <div className="flex justify-end gap-2">
           {onCancel && <Button label={onCancelLabel} onClick={onCancel} />}
@@ -48,10 +83,7 @@ export default function AlertDialog(props: AlertDialogProps) {
           {onSuccess && <Button label={onSuccessLabel} onClick={onSuccess} />}
         </div>
       </div>
-    </div>
+    </div>,
+    container
   );
-
-  if (typeof window === 'undefined') return null;
-  const container = document.getElementById('modal-root');
-  return container ? ReactDOM.createPortal(modal, container) : null;
 }

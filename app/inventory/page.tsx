@@ -1,18 +1,25 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState} from 'react';
 import Button from '@/components/Button';
 import Dropdown from '@/components/Dropdown';
 import DynamicTable from '@/components/DynamicTable';
 import AlertDialog from '@/components/AlertDialog';
 import styles from './page.module.css';
 import { GoAlertFill } from "react-icons/go";
+import { FaSearch } from "react-icons/fa";
+import DynamicFormModal from '@/components/DynamicFormModal';
+import { Field } from '@/components/DynamicFormModal';
+import { useProductMovements } from './hooks/useProductMovements';
 
 const columns = [
   { key: 'select', label: '', type: 'checkbox' },
   { key: 'name', label: 'Name', type: 'text' },
   { key: 'description', label: 'Description', type: 'text' },
   { key: 'brand', label: 'Brand', type: 'text' },
+  { key: 'warehouse_name', label: 'Warehouse', type: 'text' },
+  { key: 'supplier_name', label: 'Supplier', type: 'text' },
+  { key: 'category_name', label: 'Type', type: 'text' },
   { key: 'stock', label: 'Quantity', type: 'text' },
   { key: 'sale_price', label: 'Price', type: 'text' },
   { key: 'active', label: 'Active', type: 'switch' },
@@ -21,137 +28,89 @@ const columns = [
 export default function InventoryPage() {
 
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [tableData, setTableData] = useState([]);
-  const [warehouseList, setWarehouseList] = useState([]);
-  const [suppliersList, setSuppliersList] = useState([]);
-  const [productTypeList, setProductTypeList] = useState([]);
+  const [productState, setProductState] = useState<{ id: string; active: boolean }[]>([]);
+  const [tableData, setTableData] = useState<FilteredProducts[]>([]);
+  const [warehouseList, setWarehouseList] = useState<Option[]>([]);
+  const [suppliersList, setSuppliersList] = useState<Option[]>([]);
+  const [productTypeList, setProductTypeList] = useState<Option[]>([]);
 
   const [selectedWarehouse, setSelectedWarehouse] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedSupplier, setSelectedSupplier] = useState<string | null>(null);
 
   const [showAlertDialog, setShowAlertDialog] = useState(false);
+  const [showRemove, setShowRemove] = useState(false);
+  const [shouldDelete, setShouldDelete] = useState(false);
+  const [showProductModal, setShowProductModal] = useState(false);
 
   const [currentPage, setCurrentPage] = useState(1);
 
+  const [inputValue, setInputValue] = useState<string>('');
+  const [filteredData, setFilteredData] = useState<FilteredProducts[]>([]);
+  const [filteredByDropdown, setFilteredByDropdown] = useState<FilteredProducts[]>([]);
+
   interface FilteredProducts {
-    select: true,
-    id: string,
-    product_id: string,
-    warehouse_id: string,
-    name: string,
-    description: string,
-    sku: string,
-    category_id: string,
-    brand: string,
-    measure_unit: string,
-    cost_price: string,
-    sale_price: string,
-    active: boolean,
-    stock: string,
+    select: boolean;
+    id: string;
+    product_id: number;
+    warehouse_id: number;
+    supplier_id: number;
+    name: string;
+    description: string;
+    sku: string;
+    category_id: number;
+    brand: string;
+    measure_unit: string;
+    cost_price: number;
+    sale_price: number;
+    active: boolean;
+    stock: number;
+    supplier_name: string;
+    warehouse_name: string;
+    category_name: string;
   }
 
-  const [filteredData, setFilteredData] = useState<FilteredProducts[]>([]);
+  interface Option {
+    label: string;
+    value: string;
+  }
 
-  useEffect(() => {
-    fetch('/api/inventory/warehouses')
-      .then(res => res.json())
-      .then(
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (data: any) => {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const warehouse_list = data.map((item: any) => ({
-            warehouse_id: item.warehouse_id,
-            label: item.name,
-            value: item.warehouse_id.toString()
-          }));
-          setWarehouseList(warehouse_list);
-        }
-      );
-  }, []);
+  const productFields = [
+    { name: 'name', label: 'Name', type: 'text' },
+    { name: 'description', label: 'Description', type: 'text' },
+    { name: 'brand', label: 'Brand', type: 'text' },
+    { name: 'warehouse_name', label: 'Warehouse', type: 'select', options: warehouseList },
+    { name: 'supplier_name', label: 'Supplier', type: 'select', options: suppliersList },
+    { name: 'category_name', label: 'Type', type: 'select', options: productTypeList },
+    { name: 'measure_unit', label: 'Measure Unit', type: 'select', options: [{ label: 'piece', value: 'piece' }, { label: 'liter', value: 'liter' }, { label: 'kg', value: 'kg' }] },
+    { name: 'cost_price', label: 'Cost Price', type: 'number' },
+    { name: 'sale_price', label: 'Sale Price', type: 'number' },
+    { name: 'stock', label: 'Quantity', type: 'number' },
+    { name: 'active', label: 'Active', type: 'switch' },
+  ] satisfies Field[];
 
-  useEffect(() => {
-    fetch('/api/inventory/product_type')
-      .then(res => res.json())
-      .then(
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (data: any) => {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const category_list = data.map((item: any) => ({
-            category_id: item.category_id,
-            label: item.name,
-            value: item.category_id.toString()
-          }));
-          setProductTypeList(category_list);
-        }
-      );
-  }, []);
-
-  useEffect(() => {
-    fetch('/api/inventory/suppliers')
-      .then(res => res.json())
-      .then(
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (data: any) => {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const suppliers_list = data.map((item: any) => ({
-            supplier_id: item.supplier_id,
-            label: item.name,
-            value: item.supplier_id.toString()
-          }));
-          setSuppliersList(suppliers_list);
-        }
-      );
-  }, []);
-
-  useEffect(() => {
-    fetch('/api/inventory/products')
-      .then(res => res.json())
-      .then(
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (data: any) => {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const transformed = data.map((item: any) => ({
-            select: true,
-            id: item.product_id.toString(),
-            product_id: item.product_id,
-            warehouse_id: item.warehouse_id,
-            name: item.name,
-            description: item.description,
-            sku: item.sku,
-            category_id: item.category_id,
-            brand: item.brand,
-            measure_unit: item.measure_unit,
-            cost_price: item.cost_price,
-            sale_price: item.sale_price,
-            active: item.active,
-            stock: item.stock,
-            supplier_id: item.supplier_id,
-          }));
-          setTableData(transformed);
-        }
-      );
-  }, []);
-
-  useEffect(() => {
-    let filtered = [...tableData];
-
-    if (selectedWarehouse) {
-      filtered = filtered.filter(item => item['warehouse_id'] === Number(selectedWarehouse));
-    }
-
-    if (selectedCategory) {
-      filtered = filtered.filter(item => item['category_id'] === Number(selectedCategory));
-    }
-
-    if (selectedSupplier) {
-      filtered = filtered.filter(item => item['supplier_id'] === Number(selectedSupplier));
-    }
-
-    setFilteredData(filtered);
-    setCurrentPage(1);
-  }, [selectedWarehouse, selectedCategory, selectedSupplier, tableData]);
-
+  useProductMovements(
+    setTableData,
+    tableData,
+    selectedWarehouse,
+    selectedCategory,
+    selectedSupplier,
+    setFilteredByDropdown,
+    setFilteredData,
+    setCurrentPage,
+    setWarehouseList,
+    setProductTypeList,
+    setSuppliersList,
+    inputValue,
+    filteredByDropdown,
+    selectedIds,
+    setShowRemove,
+    productState,
+    shouldDelete,
+    setSelectedIds,
+    setShouldDelete
+  )
+  
   return (
     <div className="flex">
       <div className={`flex flex-col flex-1 ${styles.contentBackground}`}>
@@ -163,28 +122,28 @@ export default function InventoryPage() {
                 title='alerta'
                 icon={<GoAlertFill className="w-10 h-10" />}
                 content='¿Está seguro que quiere eliminar el siguiente producto de la base de datos?'
-                onSuccess={() => alert(selectedIds.join(", "))}
+                onSuccess={() => setShouldDelete(true)}
                 onCancel={() => setShowAlertDialog(false)}
-                />
+              />
             )
           }
-          <Dropdown 
-            options={warehouseList} 
+          <Dropdown
+            options={warehouseList}
             placeholder="Select Warehouse"
             onSelect={value => setSelectedWarehouse(value)}
             value={selectedWarehouse}
           />
-          <Dropdown 
-            options={productTypeList} 
+          <Dropdown
+            options={productTypeList}
             placeholder="Select Product Type"
-            onSelect={value => setSelectedCategory(value)} 
+            onSelect={value => setSelectedCategory(value)}
             value={selectedCategory}
           />
-          <Dropdown 
-            options={suppliersList} 
+          <Dropdown
+            options={suppliersList}
             placeholder="Select Supplier"
             onSelect={value => setSelectedSupplier(value)}
-            value={selectedSupplier} 
+            value={selectedSupplier}
           />
           <Button
             label="Clear Filters"
@@ -192,9 +151,38 @@ export default function InventoryPage() {
               setSelectedWarehouse(null);
               setSelectedCategory(null);
               setSelectedSupplier(null);
+              setInputValue('');
               setCurrentPage(1);
             }}
           />
+          <div className="flex items-center gap-2">
+            <label className="text-[#8b0f14] font-bold">
+              Search:
+            </label>
+            <input
+              type="text"
+              placeholder="Search by name"
+              className="border border-gray-300 rounded px-2 py-1 w-64"
+              value={inputValue}
+              onFocus={() => {
+                setSelectedWarehouse(null);
+                setSelectedCategory(null);
+                setSelectedSupplier(null);
+              }}
+              onChange={(e) => {
+                setInputValue(e.target.value);
+              }}
+            />
+            <Button
+              label={
+                <div className="flex items-center gap-2">
+                  <FaSearch className="w-4 h-4" />
+                </div>
+              }
+              className="bg-[#a01217] text-white hover:bg-[#8b0f14] transition-colors p-2 w-fit h-fit"
+              onClick={() => { }}
+            />
+          </div>
         </div>
 
         <DynamicTable
@@ -203,19 +191,33 @@ export default function InventoryPage() {
           currentPage={currentPage}
           onPageChange={setCurrentPage}
           onSelectedRowsChange={ids => setSelectedIds(ids)}
+          onActiveChange={(states) => setProductState(states)}
         />
 
         <div className="mt-4 flex flex-wrap gap-4">
-          <Button
-            label="Remove"
-            onClick={() => {
-              setShowAlertDialog(true);
-            }}
-          />
-          <Button label="Register product" onClick={() => alert('Register product')} />
+          {showRemove && (
+            <Button
+              label="Remove"
+              onClick={() => {
+                setShowAlertDialog(true);
+              }}
+            />
+          )}
+          <Button label="Register product" onClick={() => setShowProductModal(true)} />
           <Button label="Register entry" onClick={() => alert('Register entry')} />
           <Button label="Change warehouse" onClick={() => alert('Change warehouse')} />
         </div>
+        {showProductModal && (
+          <DynamicFormModal
+            title="Register New Product"
+            isOpen={showProductModal}
+            onClose={() => setShowProductModal(false)}
+            fields={productFields}
+            onSubmit={(data) => {
+              console.log("Form submitted with:", data);
+            }}
+          />
+        )}
       </div>
     </div>
   );

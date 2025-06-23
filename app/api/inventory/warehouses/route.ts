@@ -2,10 +2,11 @@ import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
 
 export async function GET() {
-  const supabase = await createClient();
-  const { data: warehouses, error } = await supabase.from("warehouses").select();
+    const supabase = await createClient();
 
-  if (error) {
+    const {data: warehouses, error} = await supabase.from('warehouses').select();
+
+    if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 

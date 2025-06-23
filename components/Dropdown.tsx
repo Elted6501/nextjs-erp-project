@@ -15,6 +15,7 @@ interface DropdownProps {
   onSelect?: (value: string) => void;
   value?: string | null; // controlado externamente
   disabled?: boolean;
+  className?: string;
 }
 
 export default function Dropdown({
@@ -23,6 +24,7 @@ export default function Dropdown({
   onSelect,
   value,
   disabled = false,
+  className,
 }: DropdownProps) {
   const [open, setOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -51,7 +53,7 @@ export default function Dropdown({
 
   return (
     <div
-      className={`relative inline-block text-left w-52 ${disabled ? 'opacity-50 pointer-events-none' : ''}`}
+      className={`relative inline-block text-left w-52 ${disabled ? 'opacity-50 pointer-events-none' : ''} ${className || ''}`}
       ref={dropdownRef}
     >
       <button
