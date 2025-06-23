@@ -53,8 +53,7 @@ export default function PendingToPayPage() {
 
   const getPendingsExcel = async () => {
     const sheetName = "Pending to pay";
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const content = pendingToPay.map((item: any) => ({
+    const content = pendingToPay.map((item: PendingToPayItem) => ({
       OrderId: item.OrderId,
       Product: item.Product,
       Status: item.Status,
