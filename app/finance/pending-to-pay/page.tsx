@@ -71,7 +71,7 @@ export default function PendingToPayPage() {
     ];
 
     try {
-      toExcel(sheetName, columns, content);
+      await toExcel(sheetName, columns, content);
       alert("Excel file created successfully");
     } catch (error) {
       console.error("Error creating Excel file:", error);
