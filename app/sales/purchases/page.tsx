@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Button from '@/components/Button';
 import styles from "@/app/sales/sales.module.css";
-import { Trash } from 'lucide-react';
+import { Trash, ChevronDown, User, Users, Building, X } from 'lucide-react';
 
 // Función para obtener la fecha actual en formato YYYY-MM-DD
 const getCurrentDate = () => {
@@ -19,7 +19,19 @@ interface Product {
   sale_price: number;
   brand: string;
   active: boolean;
-  stock?: number; // Agregar campo de stock
+  stock?: number;
+}
+
+interface Client {
+  client_id: number;
+  client_type: 'Individual' | 'Business';
+  business_name?: string;
+  first_name?: string;
+  last_name?: string;
+  tax_id: string;
+  email: string;
+  phone: string;
+  status: 'Active' | 'Inactive' | 'Blocked';
 }
 
 interface CartItem {
@@ -35,6 +47,7 @@ interface CartItem {
 
 export default function SalesPage() {
   const [products, setProducts] = useState<Product[]>([]);
+  const [clients, setClients] = useState<Client[]>([]);
   const [rows, setRows] = useState<CartItem[]>([]);
   const [inputId, setInputId] = useState('');
   const [inputQty, setInputQty] = useState('');
@@ -42,14 +55,20 @@ export default function SalesPage() {
   const [modalMessage, setModalMessage] = useState('');
   const [menuOpen, setMenuOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  
+  // Estados para la selección de cliente
+  const [selectedClient, setSelectedClient] = useState<Client | null>(null);
+  const [showClientDropdown, setShowClientDropdown] = useState(false);
+  const [clientSearch, setClientSearch] = useState('');
+  const [loadingClients, setLoadingClients] = useState(false);
+  const [showClientSelection, setShowClientSelection] = useState(false);
 
   // Cargar productos desde la base de datos
   useEffect(() => {
     fetch('/api/inventory/products')
       .then(res => res.json())
       .then((data: Product[]) => {
-        console.log('Products from API:', data); // Debug: ver qué datos llegan
-        // Filtrar solo productos activos
+        console.log('Products from API:', data);
         const activeProducts = data.filter(product => product.active);
         setProducts(activeProducts);
         setLoading(false);
@@ -62,12 +81,54 @@ export default function SalesPage() {
       });
   }, []);
 
+  // Cargar clientes cuando se muestra la selección
+  const loadClients = async (search: string = '') => {
+    setLoadingClients(true);
+    try {
+      const params = new URLSearchParams({
+        limit: '50', // Límite para el dropdown
+        status: 'Active', // Solo clientes activos
+        ...(search && { search })
+      });
+
+      const response = await fetch(`/api/sales/clients?${params}`);
+      const data = await response.json();
+
+      if (response.ok) {
+        setClients(data.data || []);
+      } else {
+        throw new Error(data.error || 'Error loading clients');
+      }
+    } catch (error) {
+      console.error('Error loading clients:', error);
+      setModalMessage('Error loading clients');
+      setShowModal(true);
+    } finally {
+      setLoadingClients(false);
+    }
+  };
+
+  // Cargar clientes cuando se abre el dropdown
+  useEffect(() => {
+    if (showClientDropdown) {
+      loadClients(clientSearch);
+    }
+  }, [showClientDropdown]);
+
+  // Búsqueda de clientes con debounce
+  useEffect(() => {
+    if (showClientDropdown) {
+      const timer = setTimeout(() => {
+        loadClients(clientSearch);
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+  }, [clientSearch]);
+
   const handleAddProduct = () => {
-    // Buscar por SKU o ID del producto
     const searchValue = inputId.trim().toUpperCase();
     const qty = parseInt(inputQty);
 
-    // Buscar producto por SKU o por ID
     const product = products.find(p => 
       p.sku.toUpperCase() === searchValue || 
       p.product_id.toString() === searchValue
@@ -85,18 +146,15 @@ export default function SalesPage() {
       return;
     }
 
-    // Verificar si el producto ya está en el carrito
     const existingItemIndex = rows.findIndex(row => row.product_id === product.product_id);
     
     if (existingItemIndex >= 0) {
-      // Si existe, actualizar la cantidad
       const updatedRows = [...rows];
       updatedRows[existingItemIndex].quantity += qty;
       updatedRows[existingItemIndex].totalPrice = 
         updatedRows[existingItemIndex].quantity * updatedRows[existingItemIndex].unitPrice;
       setRows(updatedRows);
     } else {
-      // Si no existe, agregar nuevo item
       const newRow: CartItem = {
         id: product.sku,
         product_id: product.product_id,
@@ -110,13 +168,30 @@ export default function SalesPage() {
       setRows(prev => [...prev, newRow]);
     }
 
-    // Limpiar inputs
     setInputId('');
     setInputQty('');
   };
 
   const handleDelete = (indexToDelete: number) => {
     setRows(prevRows => prevRows.filter((_, index) => index !== indexToDelete));
+  };
+
+  const handleClientSelect = (client: Client) => {
+    setSelectedClient(client);
+    setShowClientDropdown(false);
+    setShowClientSelection(false);
+  };
+
+  const clearClientSelection = () => {
+    setSelectedClient(null);
+  };
+
+  const getClientDisplayName = (client: Client) => {
+    if (client.client_type === 'Business') {
+      return client.business_name || 'Unknown Business';
+    } else {
+      return `${client.first_name || ''} ${client.last_name || ''}`.trim() || 'Unknown Individual';
+    }
   };
 
   const handleCreateSale = async () => {
@@ -126,13 +201,18 @@ export default function SalesPage() {
       return;
     }
 
+    // Mostrar selección de cliente si no hay uno seleccionado
+    if (!selectedClient && !showClientSelection) {
+      setShowClientSelection(true);
+      return;
+    }
+
     try {
-      // Preparar los datos de la venta
       const saleData = {
-        client_id: null, // null en lugar de 1, ya que no tenemos clientes creados
-        employee_id: null, // null en lugar de 1, ya que no tenemos empleados creados
-        payment_method: 'Cash', // Por ahora hardcodeado, después vendrá de un selector
-        vat: totalPrice * 0.16, // Calculando 16% de IVA 
+        client_id: selectedClient?.client_id || null,
+        employee_id: null,
+        payment_method: 'Cash',
+        vat: totalPrice * 0.16,
         notes: '', 
         items: rows.map(item => ({
           product_id: item.product_id,
@@ -142,8 +222,7 @@ export default function SalesPage() {
         }))
       };
 
-      // Hacer la petición al API
-      console.log('Sending sale data:', saleData); // Debug log
+      console.log('Sending sale data:', saleData);
       
       const response = await fetch('/api/sales/selling', {
         method: 'POST',
@@ -154,19 +233,23 @@ export default function SalesPage() {
       });
 
       const result = await response.json();
-      console.log('API Response:', result); // Debug log
+      console.log('API Response:', result);
 
       if (!response.ok) {
         throw new Error(result.error || 'Failed to create sale');
       }
 
-      // Mostrar mensaje de éxito
-      setModalMessage(`Sale created successfully! Sale ID: ${result.sale_id} - Total: ${result.total.toFixed(2)}`);
+      const clientInfo = selectedClient 
+        ? ` - Client: ${getClientDisplayName(selectedClient)}`
+        : ' - No client assigned';
+
+      setModalMessage(`Sale created successfully! Sale ID: ${result.sale_id} - Total: $${result.total.toFixed(2)}${clientInfo}`);
       setShowModal(true);
       
-      // Limpiar el carrito después de crear la venta
       setTimeout(() => {
         setRows([]);
+        setSelectedClient(null);
+        setShowClientSelection(false);
       }, 2000);
 
     } catch (error) {
@@ -228,6 +311,43 @@ export default function SalesPage() {
             </div>
           </div>
 
+          {/* Client Selection Section */}
+          <div className="mb-4 p-4 bg-white rounded-lg shadow-sm border">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <User size={20} className="text-gray-600" />
+                <span className="font-medium text-gray-700">Selected Client:</span>
+                {selectedClient ? (
+                  <div className="flex items-center gap-2 bg-blue-50 px-3 py-1 rounded-lg">
+                    {selectedClient.client_type === 'Business' ? 
+                      <Building size={14} className="text-blue-600" /> : 
+                      <Users size={14} className="text-blue-600" />
+                    }
+                    <span className="text-blue-800 font-medium">
+                      {getClientDisplayName(selectedClient)}
+                    </span>
+                    <button
+                      onClick={clearClientSelection}
+                      className="text-red-500 hover:text-red-700 ml-2"
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+                ) : (
+                  <span className="text-gray-500 italic">No client selected</span>
+                )}
+              </div>
+              <Button
+                label="Select Client"
+                onClick={() => {
+                  setShowClientSelection(true);
+                  setShowClientDropdown(true);
+                }}
+                className="bg-blue-600 hover:bg-blue-700 text-white text-sm px-3 py-1"
+              />
+            </div>
+          </div>
+
           <div className="flex gap-4 mb-4 items-end">
             <div>
               <label className="block text-sm font-medium text-gray-700">SKU / ID</label>
@@ -258,7 +378,7 @@ export default function SalesPage() {
             </div>
           </div>
 
-          {/* Lista de productos disponibles (opcional - para referencia) */}
+          {/* Lista de productos disponibles */}
           <details className="mb-4">
             <summary className="cursor-pointer text-sm text-gray-600 hover:text-gray-800">
               View available products ({products.length})
@@ -361,6 +481,86 @@ export default function SalesPage() {
         </div>
       </div>
 
+      {/* Client Selection Modal */}
+      {showClientSelection && (
+        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl p-6 w-full max-w-md max-h-[80vh] overflow-hidden shadow-xl">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-lg font-semibold text-gray-800">Select Client</h2>
+              <button
+                onClick={() => setShowClientSelection(false)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            
+            <div className="mb-4">
+              <input
+                type="text"
+                placeholder="Search clients..."
+                value={clientSearch}
+                onChange={(e) => setClientSearch(e.target.value)}
+                className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+
+            <div className="mb-4">
+              <button
+                onClick={() => {
+                  setSelectedClient(null);
+                  setShowClientSelection(false);
+                }}
+                className="w-full text-left px-3 py-2 rounded-lg hover:bg-gray-100 border border-dashed border-gray-300"
+              >
+                <div className="flex items-center gap-2">
+                  <User size={16} className="text-gray-500" />
+                  <span className="text-gray-600 italic">No client (Anonymous sale)</span>
+                </div>
+              </button>
+            </div>
+
+            <div className="max-h-60 overflow-y-auto">
+              {loadingClients ? (
+                <div className="text-center py-4 text-gray-500">
+                  Loading clients...
+                </div>
+              ) : clients.length === 0 ? (
+                <div className="text-center py-4 text-gray-500">
+                  {clientSearch ? 'No clients found matching your search.' : 'No active clients found.'}
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {clients.map(client => (
+                    <button
+                      key={client.client_id}
+                      onClick={() => handleClientSelect(client)}
+                      className="w-full text-left px-3 py-2 rounded-lg hover:bg-blue-50 border border-gray-200 hover:border-blue-300 transition-colors"
+                    >
+                      <div className="flex items-center gap-2">
+                        {client.client_type === 'Business' ? 
+                          <Building size={16} className="text-blue-600" /> : 
+                          <Users size={16} className="text-green-600" />
+                        }
+                        <div>
+                          <div className="font-medium">
+                            {getClientDisplayName(client)}
+                          </div>
+                          <div className="text-sm text-gray-500">
+                            {client.email} • {client.tax_id}
+                          </div>
+                        </div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de mensajes */}
       {showModal && (
         <div className="fixed inset-0 backdrop-blur-sm bg-white/30 flex justify-center items-center z-50">
           <div className="bg-white p-6 rounded-xl shadow-lg max-w-sm w-full text-center">
