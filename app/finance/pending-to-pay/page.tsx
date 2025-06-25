@@ -43,6 +43,7 @@ export default function PendingToPayPage() {
     fetch("/api/finance/pending_to_pay")
       .then((response) => response.json())
       .then((data) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const transformData = data.map((item: any) => ({
           id: item.payable_id,
           OrderId: item.order_id,
