@@ -67,7 +67,6 @@ export default function PendingToPayPage() {
       Status,
       DueDate,
       PayDate,
-    }));
 
     const columns = [
       { label: "Order Id", value: "OrderId" },
