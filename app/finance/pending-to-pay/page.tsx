@@ -57,7 +57,7 @@ export default function PendingToPayPage() {
       .catch((error) => {
         console.error("Error fetching pending to pay data:", error);
       });
-  }, []);
+  }, [status]);
 
   const handleExportExcel = async () => {
     const sheetName = "Pending to pay";
