@@ -7,10 +7,12 @@ import './login.css';
 function Login() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const router = useRouter();
+  const [animationType, setAnimationType] = useState<'' | 'glow' >('');
+  
 
   useEffect(() => {
-    // Redirect if JWT cookie exists (basic check; ideally should validate the token on server)
     if (document.cookie.includes('token=')) {
       router.push('/');
     }
@@ -27,20 +29,18 @@ function Login() {
 
       if (res.ok) {
         const { token } = await res.json();
-        console.log('Received JWT:', token); // 👉 Debug: print JWT in console
+        console.log('Received JWT:', token);
         router.push('/');
       } else {
         const { error } = await res.json();
         alert(error || 'Invalid credentials');
       }
     } catch (err) {
-    console.error(err);
-    alert('Failed to connect to the server');
+      console.error(err);
+      alert('Failed to connect to the server');
     }
-
   };
 
-  // Text typing animation
   useEffect(() => {
     const texts = ['Welcome', 'Bienvenido', 'Bienvenue', 'Bem-vindo', '欢迎'];
     const typingElement = document.querySelector('.typewriter-text');
@@ -79,23 +79,42 @@ function Login() {
 
   return (
     <div className="login-container">
-      <Image src="/logo4k.png" alt="NitroDrive Logo" className="login-logo" width={1228} height={772}/>
+      <Image src="/logo4k.png" alt="NitroDrive Logo" className="login-logo" width={1228} height={772} />
       <div className="login-content">
         <form className="login-form" onSubmit={handleLogin}>
           <h2><span className="typewriter-text"></span></h2>
+
           <input
             type="text"
             placeholder="username"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
           />
-          <input
-            type="password"
-            placeholder="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
-          <button type="submit">Login</button>
+
+          <div className="password-container">
+            <input
+              type={showPassword ? 'text' : 'password'}
+              placeholder="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+            <Image
+              src={showPassword ? '/eye-open.png' : '/eye-closed.png'}
+              alt="Toggle password visibility"
+              width={20}
+              height={20}
+              className="eye-icon"
+              onClick={() => setShowPassword(!showPassword)}
+            />
+          </div>
+
+            <button
+              type="submit"
+              className={`login-button ${animationType === 'glow' ? 'glow' : ''}`}
+              onClick={() => setAnimationType('glow')}
+            >
+              Login
+            </button>
         </form>
       </div>
     </div>

@@ -1,45 +1,21 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Button from '@/components/Button';
 import Dropdown from '@/components/Dropdown';
 import DynamicTable from '@/components/DynamicTable';
+import { createClient } from '@supabase/supabase-js';
+
+// Configura tu cliente de Supabase
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
 
 const employees = [
   { label: 'Alice Johnson', value: '1' },
   { label: 'Bob Martinez', value: '2' },
   { label: 'Charlie Smith', value: '3' },
-];
-
-
-const dummyAttendance = [
-  {
-    id: '1',
-    date: '2024-06-10',
-    employeeName: 'Alice Johnson',
-    clockIn: '08:00',
-    clockOut: '17:00',
-    status: 'Present',
-    notes: '',
-  },
-  {
-    id: '2',
-    date: '2024-06-10',
-    employeeName: 'Bob Martinez',
-    clockIn: '08:20',
-    clockOut: '17:05',
-    status: 'Late',
-    notes: 'Traffic delay',
-  },
-  {
-    id: '3',
-    date: '2024-06-10',
-    employeeName: 'Charlie Smith',
-    clockIn: '',
-    clockOut: '',
-    status: 'Absent',
-    notes: '',
-  },
 ];
 
 const columns = [
@@ -53,29 +29,68 @@ const columns = [
   { key: 'actions', label: 'Actions', type: 'action' },
 ];
 
+type AttendanceRecord = {
+  id: string;
+  date: string;
+  employeeName: string;
+  clockIn: string;
+  clockOut: string;
+  status: string;
+  notes: string;
+};
+
 export default function AttendancePage() {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [attendance] = useState(dummyAttendance);
+  const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
   const [selectedEmployee, setSelectedEmployee] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState<string>('');
+
+  useEffect(() => {
+    const fetchAttendance = async () => {
+      // Trae los registros de asistencia y los nombres de empleados
+      const { data, error } = await supabase
+  .from('attendance')
+  .select(`
+    attendance_id,
+    date,
+    clock_in,
+    clock_out,
+    status,
+    notes,
+    employee_id,
+    employees (
+      first_name,
+      last_name
+    )
+  `);
+
+      if (error) {
+        console.error('Error fetching attendance:', error);
+        setAttendance([]);
+      } else {
+setAttendance(
+  (data as any[]).map((item) => ({
+    id: String(item.attendance_id),
+    date: item.date,
+    employeeName: item.employees
+      ? `${item.employees.first_name} ${item.employees.last_name}`
+      : item.employee_id,
+    clockIn: item.clock_in || '',
+    clockOut: item.clock_out || '',
+    status: item.status || '',
+    notes: item.notes || '',
+  }))
+);
+      }
+    };
+    fetchAttendance();
+  }, []);
+
   const filteredAttendance = attendance.filter(
-  item =>
-    (!selectedEmployee || item.employeeName === employees.find(emp => emp.value === selectedEmployee)?.label) &&
-    (!selectedDate || item.date === selectedDate)
+    item =>
+      (!selectedEmployee || item.employeeName === employees.find(emp => emp.value === selectedEmployee)?.label) &&
+      (!selectedDate || item.date === selectedDate)
   );
-
-  type AttendanceRecord = {
-    id: string;
-    date: string;
-    employeeName: string;
-    clockIn: string;
-    clockOut: string;
-    status: string;
-    notes: string;
-  };
-
-
-
 
   // Render action buttons for each row
   const renderActions = (row: AttendanceRecord) => (
