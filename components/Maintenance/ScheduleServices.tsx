@@ -1,9 +1,8 @@
-import { Dispatch, SetStateAction, useEffect } from "react";
+import { Dispatch, SetStateAction } from "react";
 import MechanicsSchedule from "./MechanicsSchedule";
 import ScheduleServicesSelected from "./ScheduleServicesSelected";
 import ServicesSchedule from "./ServicesSchedule";
-
-type Service = { name: string; service_price: number };
+import { Mechanic } from "@/Types/Maintenance/schedule";
 
 type ScheduleServicesType = {
   setStep: (step: number) => void;
@@ -12,7 +11,7 @@ type ScheduleServicesType = {
   total: number;
   selectedServices: string[];
   setSelectedServices: Dispatch<SetStateAction<string[]>>
-  mechanics: any[];
+  mechanics: Mechanic[];
   services: { name: string, service_price: number }[]
 };
 

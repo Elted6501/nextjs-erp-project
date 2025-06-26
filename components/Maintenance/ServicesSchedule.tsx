@@ -1,5 +1,4 @@
 import { ServicesScheduleType } from '@/Types/Maintenance/schedule';
-import React, { useEffect, useState } from 'react';
 
 const ServicesSchedule = ({
   services,

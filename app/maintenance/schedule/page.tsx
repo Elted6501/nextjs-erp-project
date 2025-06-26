@@ -6,20 +6,13 @@ import ScheduleAppointment from "@/components/Maintenance/ScheduleAppointment";
 import ScheduleResults from "@/components/Maintenance/ScheduleResults";
 import ScheduleServices from "@/components/Maintenance/ScheduleServices";
 import Schedule from "@/components/Maintenance/Schedule";
-
-type Mechanic = {
-  employee_id: number;
-  first_name: string;
-  last_name: string;
-};
-
+import { CarType, Mechanic, ServicesType } from "@/Types/Maintenance/schedule";
 
 export default function SchedulePage() {
   const [step, setStep] = useState<number>(1);
   const [client, setClient] = useState<string>("");
-  const [_, setClients] = useState<string[]>([]);
-  const [services, setServices] = useState<{ name: string, service_price: number }[]>([]);
-  const [car, setCar] = useState<{ brand: string, model: string, year: string, plates: string, }>({ brand: '', model: '', year: '', plates: '', });
+  const [services, setServices] = useState<ServicesType[]>([]);
+  const [car, setCar] = useState<CarType>({ brand: '', model: '', year: '', plates: '', });
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
   const [mechanic, setMechanic] = useState<Mechanic>({ employee_id: 0, first_name: 'Any', last_name: 'Any' });
   const [mechanics, setMechanics] = useState<Mechanic[]>([]);
@@ -72,20 +65,6 @@ export default function SchedulePage() {
     }
   }, [step]);
 
-  async function getClients(): Promise<void> {
-    try {
-      const response = await fetch("../api/maintenance/schedule/clients");
-      const data = await response.json();
-
-      if (data.error) {
-        console.error(data.error);
-      } else {
-        setClients(data.clients);
-      }
-    } catch (e) {
-      console.error(e);
-    }
-  }
 
   async function getMechanics(): Promise<void> {
     try {
@@ -103,7 +82,6 @@ export default function SchedulePage() {
   }
 
   useEffect(() => {
-    getClients();
     getMechanics();
     getServices();
   }, []);

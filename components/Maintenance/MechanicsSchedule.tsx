@@ -1,11 +1,7 @@
-type Mechanic = {
-  employee_id: string;
-  first_name: string;
-  last_name: string;
-};
+import { Mechanic } from "@/Types/Maintenance/schedule";
 
 type MechanicsScheduleType = {
-  mechanic: { employee_id: number, first_name: string, last_name: string };
+  mechanic: Mechanic;
   mechanics: Mechanic[];
   setMechanic: (val: { employee_id: number, first_name: string, last_name: string }) => void;
 };

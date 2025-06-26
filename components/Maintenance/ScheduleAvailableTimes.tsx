@@ -1,9 +1,10 @@
+import { Mechanic } from "@/Types/Maintenance/schedule";
 import { useEffect, useState } from "react";
 
 type ScheduleAvailableTimesType = {
   selectedTime: string;
   setSelectedTime: (time: string) => void;
-  mechanicSelected: any;
+  mechanicSelected: Mechanic;
   selectedDate: string
 };
 

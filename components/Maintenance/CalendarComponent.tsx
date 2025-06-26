@@ -1,18 +1,4 @@
-import {
-  addMonths,
-  eachDayOfInterval,
-  endOfMonth,
-  endOfWeek,
-  format,
-  isAfter,
-  isBefore,
-  isSameDay,
-  isSameMonth,
-  isToday,
-  parse,
-  startOfMonth,
-  startOfWeek,
-} from "date-fns";
+import { addMonths, eachDayOfInterval, endOfMonth, endOfWeek, format, isAfter, isBefore, isSameDay, isSameMonth, isToday, parse, startOfMonth, startOfWeek, } from "date-fns";
 import { useState } from "react";
 
 type CalendarProps = {
@@ -22,21 +8,12 @@ type CalendarProps = {
   toDate?: Date;
 };
 
-function Calendar({
-  selected,
-  onSelect,
-  fromDate = new Date(),
-  toDate = addMonths(new Date(), 1),
-}: CalendarProps) {
-  const [currentMonth, setCurrentMonth] = useState(
-    format(new Date(), "dd/MM/yyyy")
-  );
+function Calendar({ selected, onSelect, fromDate = new Date(), toDate = addMonths(new Date(), 1), }: CalendarProps) {
+  const [currentMonth, setCurrentMonth] = useState(format(new Date(), "dd/MM/yyyy"));
 
   const parsedCurrentMonth = parse(currentMonth, "dd/MM/yyyy", new Date());
 
-  const start = startOfWeek(startOfMonth(parsedCurrentMonth), {
-    weekStartsOn: 0,
-  });
+  const start = startOfWeek(startOfMonth(parsedCurrentMonth), { weekStartsOn: 0, });
   const end = endOfWeek(endOfMonth(parsedCurrentMonth), { weekStartsOn: 0 });
   const days = eachDayOfInterval({ start, end });
 

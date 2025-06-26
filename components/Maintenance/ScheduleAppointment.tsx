@@ -1,6 +1,7 @@
 import { useState } from "react";
 import Calendar from "./CalendarComponent";
 import ScheduleAvailableTimes from "./ScheduleAvailableTimes";
+import { CarType, Mechanic } from "@/Types/Maintenance/schedule";
 
 type ScheduleAppointmentType = {
   selectedDate?: string;
@@ -9,13 +10,8 @@ type ScheduleAppointmentType = {
   selectedTime: string;
   setSelectedTime: (time: string) => void;
   setStep: (step: number) => void;
-  Mechanic: any
-  car: {
-    brand: string
-    model: string
-    year: string
-    plates: string
-  };
+  Mechanic: Mechanic
+  car: CarType
   selectedServices: string[];
   assignedMechanic?: { employee_id: string | number, first_name: string, last_name: string } | null | undefined;
   client: string;

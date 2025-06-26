@@ -1,4 +1,5 @@
-import React, { Dispatch, SetStateAction, useEffect } from 'react';
+import React, { Dispatch, SetStateAction } from 'react';
+import Inputs from './Inputs';
 
 function Schedule({
   client,
@@ -34,39 +35,9 @@ function Schedule({
   return (
     <form onSubmit={handleSubmit} className="text-gray-800">
       <div className="grid grid-cols-2 gap-6">
-        <div>
-          <label className="block font-semibold mb-2">Name of the client</label>
-          <input
-            type="text"
-            value={client}
-            onChange={(e) => setClient(e.target.value)}
-            className="w-full border border-gray-300 rounded px-4 py-2 focus:outline-none focus:ring-2 focus:ring-red-600"
-            placeholder="Ej. Juan Pérez"
-            required
-          />
-        </div>
-        <div>
-          <label className="block font-semibold mb-2">Marca del auto</label>
-          <input
-            type="text"
-            value={brand}
-            onChange={(e) => setBrand(e.target.value)}
-            className="w-full border border-gray-300 rounded px-4 py-2 focus:outline-none focus:ring-2 focus:ring-red-600"
-            placeholder="Ej. Toyota"
-            required
-          />
-        </div>
-        <div>
-          <label className="block font-semibold mb-2">Modelo del auto</label>
-          <input
-            type="text"
-            value={model}
-            onChange={(e) => setModel(e.target.value)}
-            className="w-full border border-gray-300 rounded px-4 py-2 focus:outline-none focus:ring-2 focus:ring-red-600"
-            placeholder="Ej. Corolla"
-            required
-          />
-        </div>
+        <Inputs placeholder='Ej. Juan Pérez' setValue={setClient} value={client} title='Name of the client' />
+        <Inputs placeholder='Ej. Toyota' setValue={setBrand} value={brand} title='Brand of the car' />
+        <Inputs placeholder='Ej. Corolla' setValue={setModel} value={model} title='Model of the car' />
         <div>
           <label className="block font-semibold mb-2">Año del auto</label>
           <input
@@ -80,17 +51,7 @@ function Schedule({
             required
           />
         </div>
-        <div className="col-span-2">
-          <label className="block font-semibold mb-2">Placas</label>
-          <input
-            type="text"
-            value={plates}
-            onChange={(e) => setPlates(e.target.value)}
-            className="w-full border border-gray-300 rounded px-4 py-2 focus:outline-none focus:ring-2 focus:ring-red-600"
-            placeholder="Ej. ABC1234"
-            required
-          />
-        </div>
+        <Inputs placeholder='Ej. ABC123' setValue={setPlates} value={plates} title='Plates' />
       </div>
 
       <div className="mt-6">

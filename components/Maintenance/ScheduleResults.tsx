@@ -1,21 +1,10 @@
+import { CarType, Mechanic } from "@/Types/Maintenance/schedule";
 import { useRouter } from "next/navigation";
-import { Dispatch, SetStateAction, useEffect, useState } from 'react';
-
-type Mechanic = {
-  employee_id: string | number
-  first_name: string;
-  last_name: string;
-};
 
 type ScheduleResultsType = {
   appointmentId: string;
   client: string;
-  car: {
-    brand: string
-    model: string
-    year: string
-    plates: string
-  };
+  car: CarType
   selectedServices: string[];
   total: number;
   selectedDate?: string;
