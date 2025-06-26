@@ -22,50 +22,33 @@ export default function ClockButton({ employeeId }: Props) {
       const now = new Date();
       const today = now.toLocaleDateString('sv-SE', { timeZone: 'America/Chihuahua' });
 
-      // --- BLOQUEO TEMPORAL DE 3 MINUTOS ---
+      // Bloqueo temporal (si lo tienes)
       const hideUntil = localStorage.getItem(`hideClockButton_${employeeId}_${today}`);
       if (hideUntil && Date.now() < Number(hideUntil)) {
         setHideButton(true);
         setTimeout(() => setHideButton(false), Number(hideUntil) - Date.now());
         return;
       } else if (hideUntil && Date.now() >= Number(hideUntil)) {
-        // Si ya pasó el tiempo, limpia el bloqueo
         localStorage.removeItem(`hideClockButton_${employeeId}_${today}`);
         setHideButton(false);
       } else {
         setHideButton(false);
       }
 
-      // --- PARA USAR employee_schedule_start DESCOMENTA ESTE BLOQUE ---
-      /*
-      // Obtén el horario de inicio del empleado
-      const { data: empData } = await supabase
-        .from('employees')
-        .select('employee_schedule_start')
-        .eq('employee_id', employeeId)
-        .single();
-
-      if (empData && empData.employee_schedule_start) {
-        const scheduleStart = new Date(`${today}T${empData.employee_schedule_start}`);
-        if (now < scheduleStart) {
-          setHideButton(true);
-          return;
-        }
-      }
-      */
-      // ---------------------------------------------------------------
-
+      // Consulta si ya hizo check in y no check out hoy
       const { data } = await supabase
         .from('attendance')
         .select('clock_in, clock_out')
         .eq('employee_id', employeeId)
         .eq('date', today)
-        .single();
+        .order('attendance_id', { ascending: false })
+        .limit(1)
+        .maybeSingle();
 
       if (data && data.clock_in && !data.clock_out) {
-        setCheckedIn(true);
+        setCheckedIn(true); // Mostrar botón como "Check Out"
       } else {
-        setCheckedIn(false);
+        setCheckedIn(false); // Mostrar botón como "Check In"
       }
     };
     fetchAttendance();
@@ -153,8 +136,8 @@ export default function ClockButton({ employeeId }: Props) {
       onClick={handleClock}
       disabled={loading}
       className={`px-4 py-2 rounded font-semibold ${
-        checkedIn ? 'bg-red-600' : 'bg-green-600'
-      } text-white ml-4`}
+        checkedIn ? 'bg-[#a01217]' : 'bg-[#006b3c]'
+      } text-white ml-4 cursor-pointer`}
     >
       {loading
         ? 'Procesando...'

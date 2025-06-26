@@ -1,81 +1,55 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Button from '@/components/Button';
 import DynamicTable from '@/components/DynamicTable';
 
 interface Role {
-  [key: string]: string | number | boolean | undefined;
-  id: string;
-  roleName: string;
+  role_id: string;
+  role_name: string;
   description: string;
-  permissions: string;
+  // permissions?: string; // Si la agregas después en la base de datos
 }
-
-const dummyRoles: Role[] = [
-  {
-    id: '1',
-    roleName: 'Admin',
-    description: 'Full access to all features',
-    permissions: 'Manage Users, Edit Settings, View Reports',
-  },
-  {
-    id: '2',
-    roleName: 'Manager',
-    description: 'Can manage employees and payroll',
-    permissions: 'View Reports, Approve Payroll',
-  },
-  {
-    id: '3',
-    roleName: 'Employee',
-    description: 'Basic access to personal data',
-    permissions: 'View Own Data',
-  },
-];
 
 const columnConfig = [
   { key: 'select', label: '', type: 'checkbox' },
-  { key: 'roleName', label: 'Role Name', type: 'text' },
+  { key: 'role_name', label: 'Role Name', type: 'text' },
   { key: 'description', label: 'Description', type: 'text' },
-  { key: 'permissions', label: 'Associated Permissions', type: 'text' },
   { key: 'actions', label: 'Actions', type: 'action' },
 ];
 
 export default function RolesPage() {
-  const [roles] = useState(dummyRoles);
+  const [roles, setRoles] = useState<Role[]>([]);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+
+  useEffect(() => {
+    fetch('/api/human-resources/roles')
+      .then(res => res.json())
+      .then(data => {
+        console.log("Roles recibidos:", data);
+        setRoles(data);
+      });
+  }, []);
 
   const handleSelectionChange = (ids: string[]) => {
     setSelectedIds(ids);
   };
 
-  // Render action buttons, including Manage Access
   const renderActions = (row: Role) => (
     <div className="flex gap-2">
       <Button
         label="Edit"
-        onClick={() => alert(`Edit role: ${row.roleName}`)}
+        onClick={() => alert(`Edit role: ${row.role_name}`)}
         className="bg-yellow-500 text-white px-2 py-1 rounded"
       />
       <Button
         label="Delete"
-        onClick={() => alert(`Delete role: ${row.roleName}`)}
+        onClick={() => alert(`Delete role: ${row.role_name}`)}
         className="bg-red-600 text-white px-2 py-1 rounded"
-      />
-      <Button
-        label="Manage Permissions"
-        onClick={() => alert(`Manage permissions for: ${row.roleName}`)}
-        className="bg-blue-600 text-white px-2 py-1 rounded"
-      />
-      <Button
-        label="Manage Access"
-        onClick={() => alert(`Show accessible views for: ${row.roleName}`)}
-        className="bg-green-600 text-white px-2 py-1 rounded"
       />
     </div>
   );
 
-  // Adapt columns for DynamicTable
   const tableColumns = columnConfig.map(col =>
     col.key === 'actions'
       ? { ...col, render: renderActions }
@@ -90,7 +64,7 @@ export default function RolesPage() {
       </div>
 
       <DynamicTable
-        data={roles}
+        data={roles.map(role => ({ ...role, id: role.role_id }))}
         columns={tableColumns}
         onSelectedRowsChange={handleSelectionChange}
       />

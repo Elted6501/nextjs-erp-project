@@ -12,12 +12,6 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
-const employees = [
-  { label: 'Alice Johnson', value: '1' },
-  { label: 'Bob Martinez', value: '2' },
-  { label: 'Charlie Smith', value: '3' },
-];
-
 const columns = [
   { key: 'select', label: '', type: 'checkbox' },
   { key: 'date', label: 'Date', type: 'text' },
@@ -37,50 +31,73 @@ type AttendanceRecord = {
   clockOut: string;
   status: string;
   notes: string;
+  employeeId: string;
+  first_name: string;
+  last_name: string;
+};
+
+type EmployeeOption = {
+  label: string;
+  value: string;
 };
 
 export default function AttendancePage() {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
+  const [employeeOptions, setEmployeeOptions] = useState<EmployeeOption[]>([]);
   const [selectedEmployee, setSelectedEmployee] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState<string>('');
 
   useEffect(() => {
     const fetchAttendance = async () => {
-      // Trae los registros de asistencia y los nombres de empleados
       const { data, error } = await supabase
-  .from('attendance')
-  .select(`
-    attendance_id,
-    date,
-    clock_in,
-    clock_out,
-    status,
-    notes,
-    employee_id,
-    employees (
-      first_name,
-      last_name
-    )
-  `);
+        .from('attendance')
+        .select(`
+          attendance_id,
+          date,
+          clock_in,
+          clock_out,
+          status,
+          notes,
+          employee_id,
+          employees (
+            first_name,
+            last_name
+          )
+        `);
 
       if (error) {
         console.error('Error fetching attendance:', error);
         setAttendance([]);
+        setEmployeeOptions([]);
+      } else if (Array.isArray(data)) {
+        const attendanceData = data.map((item) => ({
+          id: String(item.attendance_id),
+          date: item.date,
+          employeeName: item.employees
+            ? `${item.employees.first_name} ${item.employees.last_name}`
+            : item.employee_id,
+          clockIn: item.clock_in || '',
+          clockOut: item.clock_out || '',
+          status: item.status || '',
+          notes: item.notes || '',
+          employeeId: item.employee_id,
+        }));
+
+        setAttendance(attendanceData);
+
+        // Extrae empleados únicos para el filtro
+        const uniqueEmployees: { [key: string]: EmployeeOption } = {};
+        attendanceData.forEach((item) => {
+          uniqueEmployees[item.employeeId] = {
+            label: item.employeeName,
+            value: item.employeeId,
+          };
+        });
+        setEmployeeOptions(Object.values(uniqueEmployees));
       } else {
-setAttendance(
-  (data as any[]).map((item) => ({
-    id: String(item.attendance_id),
-    date: item.date,
-    employeeName: item.employees
-      ? `${item.employees.first_name} ${item.employees.last_name}`
-      : item.employee_id,
-    clockIn: item.clock_in || '',
-    clockOut: item.clock_out || '',
-    status: item.status || '',
-    notes: item.notes || '',
-  }))
-);
+        setAttendance([]);
+        setEmployeeOptions([]);
       }
     };
     fetchAttendance();
@@ -88,7 +105,7 @@ setAttendance(
 
   const filteredAttendance = attendance.filter(
     item =>
-      (!selectedEmployee || item.employeeName === employees.find(emp => emp.value === selectedEmployee)?.label) &&
+      (!selectedEmployee || item.employeeId === selectedEmployee) &&
       (!selectedDate || item.date === selectedDate)
   );
 
@@ -121,7 +138,7 @@ setAttendance(
         <h1 className="text-2xl font-bold text-[#a01217]">Attendance</h1>
         <div className="flex flex-wrap gap-2 items-center">
           <Dropdown
-            options={employees}
+            options={employeeOptions}
             placeholder="Filter by employee"
             onSelect={val => setSelectedEmployee(val)}
           />
