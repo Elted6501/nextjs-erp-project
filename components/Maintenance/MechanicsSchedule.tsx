@@ -5,9 +5,9 @@ type Mechanic = {
 };
 
 type MechanicsScheduleType = {
-  mechanic: string;
+  mechanic: { employee_id: number, first_name: string, last_name: string };
   mechanics: Mechanic[];
-  setMechanic: (val: string) => void;
+  setMechanic: (val: { employee_id: number, first_name: string, last_name: string }) => void;
 };
 
 const MechanicsSchedule = ({
@@ -20,8 +20,12 @@ const MechanicsSchedule = ({
       <label className="block mb-1 text-red-600">Select Mechanic</label>
       <select
         className="w-full bg-gradient-to-b from-[#7a0c0c] to-[#b31217] text-white border border-red-700 p-3 rounded-xl shadow appearance-none"
-        value={mechanic}
-        onChange={(e) => setMechanic(e.target.value)}
+        value={mechanic.employee_id}
+        onChange={(e) => setMechanic({
+          employee_id: Number(e.target.value),
+          first_name: '',
+          last_name: ''
+        })}
       >
         <option value="Any">Any</option>
         {mechanics.map((m) => (

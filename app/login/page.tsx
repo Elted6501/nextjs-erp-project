@@ -1,32 +1,46 @@
 "use client";
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import './login.css';
 
 function Login() {
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const router = useRouter();
 
   useEffect(() => {
-    // Si ya está autenticado, redirige al dashboard
-    if (typeof window !== "undefined" && localStorage.getItem("isAuthenticated") === "true") {
-      router.push("/");
+    // Redirect if JWT cookie exists (basic check; ideally should validate the token on server)
+    if (document.cookie.includes('token=')) {
+      router.push('/');
     }
   }, [router]);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Autenticación simulada
-    if (email === "alan@alan.com" && password === "1234") {
-      localStorage.setItem("isAuthenticated", "true");
-      router.push("/"); // Redirige al dashboard
-    } else {
-      alert("Credenciales incorrectas");
+    try {
+      const res = await fetch('/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password }),
+      });
+
+      if (res.ok) {
+        const { token } = await res.json();
+        console.log('Received JWT:', token); // 👉 Debug: print JWT in console
+        router.push('/');
+      } else {
+        const { error } = await res.json();
+        alert(error || 'Invalid credentials');
+      }
+    } catch (err) {
+    console.error(err);
+    alert('Failed to connect to the server');
     }
+
   };
 
-  // 👇 Aquí agregas el useEffect
+  // Text typing animation
   useEffect(() => {
     const texts = ['Welcome', 'Bienvenido', 'Bienvenue', 'Bem-vindo', '欢迎'];
     const typingElement = document.querySelector('.typewriter-text');
@@ -36,7 +50,7 @@ function Login() {
 
     const type = () => {
       const currentText = texts[index];
-       if (!typingElement) return;
+      if (!typingElement) return;
 
       if (isDeleting) {
         charIndex--;
@@ -49,7 +63,7 @@ function Login() {
       let delay = isDeleting ? 50 : 120;
 
       if (!isDeleting && charIndex === currentText.length) {
-        delay = 1500; // Espera antes de borrar
+        delay = 1500;
         isDeleting = true;
       } else if (isDeleting && charIndex === 0) {
         isDeleting = false;
@@ -65,15 +79,15 @@ function Login() {
 
   return (
     <div className="login-container">
-      <img src="/logo.png" alt="NitroDrive Logo" className="login-logo" />
+      <Image src="/logo4k.png" alt="NitroDrive Logo" className="login-logo" width={1228} height={772}/>
       <div className="login-content">
         <form className="login-form" onSubmit={handleLogin}>
           <h2><span className="typewriter-text"></span></h2>
           <input
-            type="email"
-            placeholder="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            type="text"
+            placeholder="username"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
           />
           <input
             type="password"
@@ -81,7 +95,7 @@ function Login() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
-          <button type="submit">Entrar</button>
+          <button type="submit">Login</button>
         </form>
       </div>
     </div>

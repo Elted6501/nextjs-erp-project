@@ -1,6 +1,8 @@
 import { useRouter } from "next/navigation";
+import { Dispatch, SetStateAction, useEffect, useState } from 'react';
 
 type Mechanic = {
+  employee_id: string | number
   first_name: string;
   last_name: string;
 };
@@ -8,12 +10,18 @@ type Mechanic = {
 type ScheduleResultsType = {
   appointmentId: string;
   client: string;
-  car: string;
+  car: {
+    brand: string
+    model: string
+    year: string
+    plates: string
+  };
   selectedServices: string[];
   total: number;
-  selectedDate?: Date;
+  selectedDate?: string;
   selectedTime: string;
   assignedMechanic?: Mechanic | null | undefined;
+  step: number
 };
 
 const ScheduleResults = (props: ScheduleResultsType) => {
@@ -31,7 +39,7 @@ const ScheduleResults = (props: ScheduleResultsType) => {
         <div className="grid grid-cols-3 gap-x-8 text-sm border-b border-red-100 pb-2 mb-4">
           <div>{props.appointmentId}</div>
           <div>{props.client}</div>
-          <div>{props.car}</div>
+          <div>{props.car.brand} - {props.car.model} - {props.car.year} - {props.car.plates}</div>
         </div>
 
         <div className="text-sm font-semibold text-red-600 border-b border-red-200 pb-1 mb-1">
@@ -48,7 +56,7 @@ const ScheduleResults = (props: ScheduleResultsType) => {
         <div className="grid grid-cols-2 gap-x-8 text-sm border-b border-red-100 pb-2 mb-4">
           <div>${props.total.toFixed(2)}</div>
           <div>
-            {props.selectedDate?.toLocaleDateString()} at {props.selectedTime}
+            {props.selectedDate} at {props.selectedTime}
           </div>
         </div>
 

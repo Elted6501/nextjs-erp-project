@@ -1,17 +1,19 @@
+import { Dispatch, SetStateAction, useEffect } from "react";
 import MechanicsSchedule from "./MechanicsSchedule";
 import ScheduleServicesSelected from "./ScheduleServicesSelected";
 import ServicesSchedule from "./ServicesSchedule";
 
-type Service = { name: string; price: number };
+type Service = { name: string; service_price: number };
 
 type ScheduleServicesType = {
   setStep: (step: number) => void;
-  mechanic: string;
-  setMechanic: (val: string) => void;
+  mechanic: { employee_id: number, first_name: string, last_name: string };
+  setMechanic: (val: { employee_id: number, first_name: string, last_name: string }) => void;
   total: number;
   selectedServices: string[];
-  setSelectedServices: (services: string[]) => void;
+  setSelectedServices: Dispatch<SetStateAction<string[]>>
   mechanics: any[];
+  services: { name: string, service_price: number }[]
 };
 
 const ScheduleServices = ({
@@ -22,13 +24,8 @@ const ScheduleServices = ({
   selectedServices,
   setSelectedServices,
   mechanics,
+  services
 }: ScheduleServicesType) => {
-  const services: Service[] = [
-    { name: "Oil Change", price: 29.99 },
-    { name: "Brake Inspection", price: 49.99 },
-    { name: "Engine Diagnostic", price: 89.99 },
-    { name: "Tire Rotation", price: 19.99 },
-  ];
 
   return (
     <div className="space-y-6">

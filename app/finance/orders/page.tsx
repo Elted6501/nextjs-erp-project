@@ -4,7 +4,8 @@ import { useRouter } from "next/navigation";
 import DynamicTable from "@/components/DynamicTable";
 import styles from "@/app/finance/page.module.css";
 import Button from "@/components/Button";
-import { FaPlus } from "react-icons/fa";
+import { FaPlus, FaCheck, FaEye, FaTimes} from "react-icons/fa";
+
 
 const columns = [
   { key: "order_id", label: "Order ID", type: "text" },
@@ -14,6 +15,8 @@ const columns = [
   { key: "description", label: "Description", type: "text" },
   { key: "status", label: "Status", type: "text" },
   { key: "date", label: "Date", type: "text" },
+  { key: "actions", label: "Actions", type: "action" },
+
 ];
 
 export default function OrdersPage() {
@@ -41,6 +44,22 @@ export default function OrdersPage() {
       });
   }, []);
 
+    const handleView = (id: string) => {
+    router.push(`/finance/pending-to-pay/${id}`);
+  };
+
+  const handleAccept = (id: string) => {
+    const confirmed = window.confirm("¿Estás seguro de aceptar la fila " + id + "?"); //Aqui se pondra la validacion para aceptar la fila, cambia estatus a Accepted
+    if (confirmed) {
+    }
+  };
+
+  const handleCancel = (id: string) => {
+    const confirmed = window.confirm("¿Estás seguro de cancelar la fila " + id + "?"); //Aqui se pondra la validacion para cancelar la fila, cambia estatus a Canceled
+    if (confirmed) {
+    }
+  };
+
   return (
     <main className={`${styles.div_principal} gap-2 flex flex-col`}>
       <div className={` flex items-end gap-2 flex-row `}>
@@ -55,7 +74,19 @@ export default function OrdersPage() {
           onClick={() => router.push("/finance/orders/create")}
         />
       </div>
-      <DynamicTable data={orders} columns={columns} />
+      <DynamicTable 
+      data={orders} 
+      columns={columns}
+      actionHandlers={{
+                onView: handleView,
+                onAccept: handleAccept,
+                onCancel: handleCancel,
+              }}
+              actionIcons={{
+                icon1: <FaEye  className="w-5 h-5" />,
+                icon2: <FaCheck className="w-5 h-5" />,
+                icon3: <FaTimes  className="w-5 h-5" />,
+              }} />
     </main>
   );
 }

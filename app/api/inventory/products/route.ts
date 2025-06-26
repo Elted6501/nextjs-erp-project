@@ -14,9 +14,9 @@ type RawProduct = {
   sale_price: number;
   active: boolean;
   stock: number;
-  suppliers?: { name: string }[];           // <-- explícitamente un arreglo
-  warehouses?: { name: string } | { name: string }[]; // puede ser objeto o arreglo
-  categories?: { name: string } | { name: string }[];
+  suppliers?: { supplier_id: number, name: string }[] | { supplier_id: number, name: string }[];
+  warehouses?: { warehouse_id: number, name: string } | { warehouse_id: number, name: string }[]; // puede ser objeto o arreglo
+  categories?: { category_id: number, name: string } | {  category_id: number, name: string }[];
 };
 
 export async function GET() {
@@ -25,20 +25,18 @@ export async function GET() {
   .from("products")
   .select(`
     product_id,
-    warehouse_id,
     name,
     description,
     sku,
-    category_id,
     brand,
     measure_unit,
     cost_price,
     sale_price,
     active,
     stock,
-    suppliers(name),
-    warehouses(name),
-    categories(name)
+    suppliers(supplier_id, name),
+    warehouses(warehouse_id, name),
+    categories(category_id, name)
   `);
 
 const products = data as RawProduct[];
@@ -49,13 +47,25 @@ const products = data as RawProduct[];
 
   // Aplana el resultado
   const flatProducts = products.map((product) => {
+  const supplier_id = Array.isArray(product.suppliers)
+    ? product.suppliers[0]?.supplier_id ?? null
+    : null;  
+
   const supplier_name = Array.isArray(product.suppliers)
     ? product.suppliers[0]?.name ?? null
     : null;
 
+  const warehouse_id = Array.isArray(product.warehouses)
+    ? product.warehouses[0]?.warehouse_id ?? null
+    : product.warehouses?.warehouse_id ?? null;
+
   const warehouse_name = Array.isArray(product.warehouses)
     ? product.warehouses[0]?.name ?? null
     : product.warehouses?.name ?? null;
+
+  const category_id = Array.isArray(product.categories)
+    ? product.categories[0]?.category_id ?? null
+    : product.categories?.category_id ?? null;
 
   const category_name = Array.isArray(product.categories)
     ? product.categories[0]?.name ?? null
@@ -63,8 +73,11 @@ const products = data as RawProduct[];
 
   return {
     ...product,
+    supplier_id,
     supplier_name,
+    warehouse_id,
     warehouse_name,
+    category_id,
     category_name,
   };
 });

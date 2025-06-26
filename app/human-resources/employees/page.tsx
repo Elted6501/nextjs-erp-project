@@ -5,6 +5,7 @@ import { useState } from 'react';
 import Button from '@/components/Button';
 import Dropdown from '@/components/Dropdown';
 import DynamicTable from '@/components/DynamicTable';
+import DynamicFormModal, { Field } from '@/components/DynamicFormModal';
 
 interface Employee {
   [key: string]: string | boolean;
@@ -59,11 +60,49 @@ export default function EmployeesPage() {
     setSelectedIds(ids);
   };
 
+  const [showModal, setShowModal] = useState(false);
+  const [fieldsData,setFieldsData] = useState<string[]>([]);
+  const [modalTitle, setModalTitle] = useState('')
+
+    const fields: Field[] = fieldsData.map((item) => ({
+    name: item.toLowerCase(),
+    label: item,
+    type: 'text',
+  }));
+
+    const handleOpenModal = (fieldArray: string[], title: string) => {
+      setFieldsData(fieldArray);      // actualizas los campos a mostrar
+      setModalTitle(title);
+      setShowModal(true);         // abres el modal
+  };
+
+  const updateArray = ["Position", "Department", "Email", "Phone","Password"]
+  const addArray = ["Name","Lastname","Position","Department","Email","Phone", "Password"]
+
+
+/* useEffect(() => {
+  if(showModal == false){
+    setShowModal(true);
+  }else{
+    setShowModal(false);
+  }
+  
+}, []) */
+
   return (
     <div className="min-h-screen bg-[#ecebeb] p-6 space-y-6">
       <div className="flex justify-between items-center mb-4 flex-wrap gap-4">
         <h1 className="text-2xl font-bold text-[#a01217]">Employees</h1>
         <div className="flex gap-2 items-center">
+          { showModal && (
+            <DynamicFormModal
+              title={modalTitle}
+              isOpen={showModal}
+              onClose={() => setShowModal(false)}
+              fields= {fields}
+              onSubmit={() => alert("info submitted")}
+            />
+          )}
           <Dropdown
             options={[
               { label: 'All Departments', value: 'all' },
@@ -80,7 +119,7 @@ export default function EmployeesPage() {
             ]}
             placeholder="Filter by Status"
           />
-          <Button label="Add Employee" onClick={() => alert('Open create modal')} />
+          <Button label="Add Employee" onClick={() => handleOpenModal(addArray,'Add Employee')} />
         </div>
       </div>
 
@@ -94,8 +133,16 @@ export default function EmployeesPage() {
         <div className="flex justify-end">
           <Button
             label={`Delete (${selectedIds.length})`}
-            className="bg-black hover:opacity-80 text-white"
+            className="bg-black hover:opacity-80 text-white mx-2"
             onClick={() => alert(`Delete users: ${selectedIds.join(', ')}`)}
+          />
+          <Button
+            label={`Update (${selectedIds.length})`}
+            className="bg-black hover:opacity-80 text-white mx-2"
+            onClick={() => {
+              handleOpenModal(updateArray,'Update Employee')
+              
+            }}
           />
         </div>
       )}

@@ -49,7 +49,7 @@ export type ServicesScheduleType = {
 
 type services = {
     name: string,
-    price: number
+    service_price: number
 }
 
 export type ScheduleServicesSelectedType = {

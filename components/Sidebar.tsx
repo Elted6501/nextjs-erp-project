@@ -67,10 +67,10 @@ export default function Sidebar() {
 
         <Link href="/">
           <Image
-            src="/NitroDriveLogo.jpg"
+            src="/NitroDriveLogo4kpng.png"
             alt="NitroDrive Logo"
-            width={isCollapsed ? 0 : 150}
-            height={40}
+            width={isCollapsed ? 0 : 4096}
+            height={1224}
             className={styles.logo}
           />
         </Link>

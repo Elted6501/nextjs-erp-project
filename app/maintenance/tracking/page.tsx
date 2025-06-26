@@ -17,8 +17,11 @@ export default function TrackingPage() {
 
   const router = useRouter();
 
-  const handleSearch = () => {
-    setStatus("In Progress"); // Aquí podrías hacer fetch con el folio
+  const handleSearch = async () => {
+    const response = await fetch("../api/maintenance/tracking/maintenance?folio=" + folio.toString());
+    const data = await response.json();
+
+    setStatus(data.data[0].status);
   };
 
   const statusSteps = [
@@ -38,14 +41,14 @@ export default function TrackingPage() {
     >
       <div className="max-w-2xl mx-auto p-8 rounded-xl shadow space-y-8 border border-gray-200 bg-white">
         <h1 className="text-3xl font-bold text-red-600 text-center">
-          Seguimiento de Cita
+          Appointment tracking
         </h1>
 
         {!status && (
           <div className="space-y-6">
             <div>
               <label className="block mb-1 text-gray-500 font-medium">
-                Ingresa tu folio
+                Digit your folio
               </label>
               <input
                 type="text"
@@ -61,7 +64,7 @@ export default function TrackingPage() {
               disabled={!folio}
               className="bg-red-700 hover:bg-red-900 px-6 py-3 rounded-lg shadow text-white w-full disabled:opacity-40"
             >
-              Buscar estado
+              Search status
             </button>
           </div>
         )}
@@ -69,7 +72,7 @@ export default function TrackingPage() {
         {status && (
           <div className="space-y-8">
             <h2 className="text-xl font-semibold text-center text-gray-700">
-              Estado de tu cita
+              Status of your appointment
             </h2>
 
             <div className="relative flex items-center justify-between">
@@ -89,11 +92,10 @@ export default function TrackingPage() {
                     className="relative z-30 flex flex-col items-center w-1/4"
                   >
                     <div
-                      className={`w-14 h-14 flex items-center justify-center rounded-full border-4 mb-2 transition-colors duration-300 ${
-                        isActive
-                          ? "border-red-500 bg-red-600 text-white"
-                          : "border-gray-300 bg-gray-100 text-gray-500"
-                      }`}
+                      className={`w-14 h-14 flex items-center justify-center rounded-full border-4 mb-2 transition-colors duration-300 ${isActive
+                        ? "border-red-500 bg-red-600 text-white"
+                        : "border-gray-300 bg-gray-100 text-gray-500"
+                        }`}
                     >
                       {step.icon}
                     </div>
@@ -110,7 +112,7 @@ export default function TrackingPage() {
                 className="bg-red-700 text-white border border-red-700 px-6 py-3 rounded-lg hover:bg-red-900"
                 onClick={() => router.push("/maintenance")}
               >
-                Finalizar
+                Finalize
               </button>
             </div>
           </div>

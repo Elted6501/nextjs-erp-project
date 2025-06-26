@@ -6,8 +6,8 @@ import { FaCalendarAlt } from "react-icons/fa";
 function Calendar({
   selected,
   onSelect,
-  fromDate = new Date(new Date().setFullYear(new Date().getFullYear() - 1)), // 1 año atrás
-  toDate = new Date(), // hasta hoy
+  fromDate = new Date(new Date().setFullYear(new Date().getFullYear() - 1)),
+  toDate = new Date(),
 }: {
   selected?: Date;
   onSelect: (date: Date) => void;
@@ -119,12 +119,10 @@ const ScheduleAppointment = ({
 };
 
 export default function HistoryPage() {
-  const [mechanic, setMechanic] = useState("Todos");
-  const [mechanics, setMechanics] = useState<
-    { first_name: string; last_name: string }[]
-  >([]);
+  const [mechanic, setMechanic] = useState<{ employee_id: number, first_name: string; last_name: string }>({ employee_id: 0, first_name: 'Any', last_name: 'Any' });
+  const [mechanics, setMechanics] = useState<{ employee_id: number, first_name: string; last_name: string }[]>([]);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
-  const [historyVisible, setHistoryVisible] = useState(false);
+  const [historyVisible, setHistoryVisible] = useState<boolean>(false);
 
   const mockHistory = [
     {
@@ -153,9 +151,8 @@ export default function HistoryPage() {
     },
   ];
 
-  // Filtrado por mecánico y fecha exacta (solo día, sin horas)
   const filteredHistory = mockHistory.filter((h) => {
-    const sameMechanic = mechanic === "Todos" || h.mechanic === mechanic;
+    const sameMechanic = mechanic.first_name === "Any" || h.mechanic === mechanic.first_name + mechanic.last_name;
     const sameDate =
       !selectedDate ||
       new Date(h.date).toDateString() === selectedDate.toDateString();
@@ -171,18 +168,22 @@ export default function HistoryPage() {
       .catch(console.error);
   }, []);
 
-  const handleSearch = () => {
+  const handleSearch = async (): Promise<void> => {
     if (!selectedDate) {
-      alert("Por favor, selecciona una fecha para buscar");
+      alert("Please, select a date to search");
       return;
     }
-    setHistoryVisible(true);
+    // const Mechanic = mechanics.filter(m => m.employee_id === mechanic.employee_id);
+    // await fetch(`../api/maintenance/history/history?id=${Mechanic[0].employee_id}`);
+    // setHistoryVisible(true);
+    console.log(selectedDate.toLocaleString());
+
   };
 
-  const handleReset = () => {
+  const handleReset = (): void => {
     setHistoryVisible(false);
     setSelectedDate(undefined);
-    setMechanic("Todos");
+    setMechanic({ employee_id: 0, first_name: 'Any', last_name: 'Any' });
   };
 
   return (
@@ -202,18 +203,22 @@ export default function HistoryPage() {
           >
             <div>
               <label className="block mb-1 font-semibold text-gray-700">
-                Mecánico
+                Mechanic
               </label>
               <select
                 className="w-full bg-gradient-to-b from-[#7a0c0c] to-[#b31217] text-white border border-red-700 p-3 rounded-lg shadow"
-                value={mechanic}
-                onChange={(e) => setMechanic(e.target.value)}
+                value={mechanic.employee_id}
+                onChange={(e) => setMechanic({
+                  employee_id: Number(e.target.value),
+                  first_name: '',
+                  last_name: ''
+                })}
               >
-                <option value="Todos">Todos</option>
+                <option value="Any">Any</option>
                 {mechanics.map((mec, idx) => (
                   <option
                     key={idx}
-                    value={`${mec.first_name} ${mec.last_name}`}
+                    value={`${mec.employee_id}`}
                   >
                     {mec.first_name} {mec.last_name}
                   </option>
@@ -223,7 +228,7 @@ export default function HistoryPage() {
 
             <div>
               <label className="block mb-1 font-semibold text-gray-700">
-                Fecha
+                Date
               </label>
               <ScheduleAppointment
                 selectedDate={selectedDate}
@@ -237,7 +242,7 @@ export default function HistoryPage() {
                 disabled={!selectedDate}
                 className="bg-red-700 hover:bg-red-900 px-6 py-3 rounded-lg shadow text-white w-full disabled:opacity-40"
               >
-                Buscar historial
+                Search history
               </button>
             </div>
           </form>
@@ -246,16 +251,16 @@ export default function HistoryPage() {
         {historyVisible && (
           <div className="space-y-6">
             <h2 className="text-xl font-semibold text-center text-gray-700">
-              {mechanic === "Todos"
-                ? "Todos los mecánicos"
-                : `Mecánico: ${mechanic}`}{" "}
-              - Fecha: {selectedDate?.toLocaleDateString()}
+              {mechanic.first_name === "Any"
+                ? "All mechanics"
+                : `Mechanic: ${mechanic}`}{" "}
+              - Date: {selectedDate?.toLocaleDateString()}
             </h2>
 
             <div className="border-l-4 border-red-700 pl-6 space-y-6">
               {filteredHistory.length === 0 ? (
                 <p className="text-gray-600 italic">
-                  No se encontró historial.
+                  There is no history
                 </p>
               ) : (
                 filteredHistory.map((entry, idx) => (
@@ -268,7 +273,7 @@ export default function HistoryPage() {
                         {entry.date}
                       </div>
                       <div className="flex items-center gap-2">
-                        <strong>Auto:</strong> {entry.car}
+                        <strong>Car:</strong> {entry.car}
                       </div>
                       <div className="flex items-center gap-2">
                         <strong>Entrada:</strong> {entry.entryDate}
@@ -277,10 +282,10 @@ export default function HistoryPage() {
                         <strong>Salida:</strong> {entry.exitDate}
                       </div>
                       <div className="flex items-center gap-2">
-                        <strong>Mecánico:</strong> {entry.mechanic}
+                        <strong>Mechanic:</strong> {entry.mechanic}
                       </div>
                       <div className="flex items-center gap-2">
-                        <strong>Servicios:</strong> {entry.services.join(", ")}
+                        <strong>Services:</strong> {entry.services.join(", ")}
                       </div>
                     </div>
                   </div>

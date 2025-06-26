@@ -16,7 +16,7 @@ const ScheduleServicesSelected = ({
           .map((s) => (
             <li key={s.name} className="flex justify-between">
               <span>{s.name}</span>
-              <span>${s.price.toFixed(2)}</span>
+              <span>${s.service_price.toFixed(2)}</span>
             </li>
           ))}
       </ul>
