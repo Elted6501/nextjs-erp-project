@@ -4,7 +4,9 @@ import { useRouter } from "next/navigation";
 import DynamicTable from "@/components/DynamicTable";
 import styles from "@/app/finance/page.module.css";
 import Button from "@/components/Button";
-import { FaPlus, FaCheck, FaEye, FaTimes } from "react-icons/fa";
+import { FaCheck, FaEye, FaTimes, FaFileExcel } from "react-icons/fa";
+import { IoFilter } from "react-icons/io5";
+import Dropdown from "@/components/Dropdown";
 
 const columns = [
   { key: "id", label: "Order ID", type: "text" },
@@ -20,6 +22,7 @@ const columns = [
 export default function OrdersPage() {
   const router = useRouter();
   const [orders, setOrders] = useState([]);
+  const [showButton, setShowButton] = useState(false);
 
   useEffect(() => {
     fetch("/api/finance/orders")
@@ -47,31 +50,83 @@ export default function OrdersPage() {
   };
 
   const handleAccept = (id: string) => {
-    const confirmed = window.confirm("¿Estás seguro de aceptar la fila " + id + "?"); //Aqui se pondra la validacion para aceptar la fila, cambia estatus a Accepted
+    const confirmed = window.confirm(
+      "¿Estás seguro de aceptar la fila " + id + "?"
+    ); //Aqui se pondra la validacion para aceptar la fila, cambia estatus a Accepted
     if (confirmed) {
     }
   };
 
   const handleCancel = (id: string) => {
-    const confirmed = window.confirm("¿Estás seguro de cancelar la fila " + id + "?"); //Aqui se pondra la validacion para cancelar la fila, cambia estatus a Canceled
+    const confirmed = window.confirm(
+      "¿Estás seguro de cancelar la fila " + id + "?"
+    ); //Aqui se pondra la validacion para cancelar la fila, cambia estatus a Canceled
     if (confirmed) {
     }
   };
 
   return (
     <main className={`${styles.div_principal} gap-2 flex flex-col`}>
-      <div className={` flex items-end gap-2 flex-row `}>
-        <Button
-          label={
-            <div className="flex items-center gap-2">
-              <FaPlus className="w-4 h-4" />
-              <span> New Order </span>
-            </div>
-          }
-          className="bg-[#a01217] text-white hover:bg-[#8b0f14] transition-colors p-2 w-fit h-fit"
-          onClick={() => router.push("/finance/orders/create")}
-        />
+      <div className="flex justify-between items-center mb-4">
+        <h1 className="text-2xl font-bold text-[#a01217] mb-4">Orders</h1>
+        <div className="flex gap-2">
+          <Button
+            label={
+              <div className="flex items-center gap-2">
+                <IoFilter className="w-4 h-4" />
+                <span>Filters </span>
+              </div>
+            }
+            className="bg-[#a01217] text-white hover:bg-[#8b0f14] transition-colors p-2 w-fit h-fit"
+            onClick={() => setShowButton(!showButton)}
+          />
+          <Button
+            label={
+              <div className="flex items-center gap-2">
+                <FaFileExcel className="w-4 h-4" />
+                <span>Excel</span>
+              </div>
+            }
+            className="bg-[#a01217] text-white hover:bg-[#8b0f14] transition-colors p-2 w-fit h-fit"
+          />
+        </div>
       </div>
+
+      {showButton && (
+        <div className="border border-[#a01217] p-4 rounded-lg flex gap-4 ">
+          <Dropdown
+            placeholder="Status"
+            options={[
+              { label: "Pending", value: "pending" },
+              { label: "Paid", value: "paid" },
+              { label: "Cancelled", value: "cancelled" },
+            ]}
+            onSelect={(value) => console.log("Selected client:", value)}
+            className="w-52"
+          />
+          <Dropdown
+            placeholder="Select Client"
+            options={[
+              { label: "Client 1", value: "client1" },
+              { label: "Client 2", value: "client2" },
+              { label: "Client 3", value: "client3" },
+            ]}
+            onSelect={(value) => console.log("Selected client:", value)}
+            className="w-52"
+          />
+          <Dropdown
+            placeholder="Select Client"
+            options={[
+              { label: "Client 1", value: "client1" },
+              { label: "Client 2", value: "client2" },
+              { label: "Client 3", value: "client3" },
+            ]}
+            onSelect={(value) => console.log("Selected client:", value)}
+            className="w-52"
+          />
+        </div>
+      )}
+
       <DynamicTable
         data={orders}
         columns={columns}
@@ -86,6 +141,7 @@ export default function OrdersPage() {
           icon3: <FaTimes className="w-5 h-5" />,
         }}
       />
+      
     </main>
   );
 }
