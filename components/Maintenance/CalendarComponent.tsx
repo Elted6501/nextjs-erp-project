@@ -3,12 +3,13 @@ import { useState } from "react";
 
 type CalendarProps = {
   selected?: string;
-  onSelect: (date: string) => void;
+  onSelect?: (date: string) => void;
+  onSelectTime?: (date: Date) => void;
   fromDate?: Date;
   toDate?: Date;
 };
 
-function Calendar({ selected, onSelect, fromDate = new Date(), toDate = addMonths(new Date(), 1), }: CalendarProps) {
+function Calendar({ selected, onSelect, onSelectTime, fromDate = new Date(), toDate = addMonths(new Date(), 1), }: CalendarProps) {
   const [currentMonth, setCurrentMonth] = useState(format(new Date(), "dd/MM/yyyy"));
 
   const parsedCurrentMonth = parse(currentMonth, "dd/MM/yyyy", new Date());
@@ -61,7 +62,13 @@ function Calendar({ selected, onSelect, fromDate = new Date(), toDate = addMonth
             <button
               key={date.toISOString()}
               disabled={isDisabledDay}
-              onClick={() => onSelect(format(date, "yyyy/MM/dd"))}
+              onClick={() => {
+                if (onSelectTime) {
+                  onSelectTime(new Date(format(date, "yyyy/MM/dd")))
+                } else if (onSelect) {
+                  onSelect(format(date, "yyyy/MM/dd"))
+                }
+              }}
               className={`p-2 m-1 rounded-full transition-all
                 ${isDisabledDay ? "text-gray-400" : ""}
                 ${isSelected ? "bg-gradient-to-br from-red-700 to-red-500 text-white shadow-lg" : ""}

@@ -1,7 +1,7 @@
 "use client";
 
 import MechanicsSchedule from "@/components/Maintenance/MechanicsSchedule";
-import { History, Mechanic, ScheduleAppointmentType } from "@/Types/Maintenance/schedule";
+import { History, MaintenanceType, Mechanic, ScheduleAppointmentType } from "@/Types/Maintenance/schedule";
 import { useEffect, useState } from "react";
 import { FaCalendarAlt } from "react-icons/fa";
 
@@ -117,7 +117,7 @@ const ScheduleAppointment = ({ selectedDate, setSelectedDate, }: ScheduleAppoint
 export default function HistoryPage() {
   const [mechanic, setMechanic] = useState<Mechanic>({ employee_id: 0, first_name: 'Any', last_name: 'Any' });
   const [mechanics, setMechanics] = useState<Mechanic[]>([]);
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>();
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [historyVisible, setHistoryVisible] = useState<boolean>(false);
   const [history, setHistory] = useState<History[]>([{ car: '', date: '', entryDate: '', exitDate: '', services: [] }]);
 
@@ -137,10 +137,9 @@ export default function HistoryPage() {
     }
     const Mechanic = mechanics.filter(m => m.employee_id === mechanic.employee_id);
     const response = await fetch(`../api/maintenance/history/history?id=${Mechanic[0].employee_id}&date=${selectedDate.toLocaleDateString()}`);
-    const data = await response.json();
+    const data: { data: MaintenanceType[] } = await response.json();
     if (data.data) {
       setHistory([]);
-
       data.data.forEach(v => {
         setHistory(h => [...h, {
           car: v.notes.split('.')[0].split('-')[0] + ' ' + v.notes.split('.')[0].split('-')[1] + ' ' + v.notes.split('.')[0].split('-')[2],
@@ -165,7 +164,7 @@ export default function HistoryPage() {
 
   const handleReset = (): void => {
     setHistoryVisible(false);
-    setSelectedDate(undefined);
+    setSelectedDate(new Date());
     setMechanic({ employee_id: 0, first_name: 'Any', last_name: 'Any' });
   };
 

@@ -80,8 +80,8 @@ export type ScheduleServicesSelectedType = {
 };
 
 export type ScheduleAppointmentType = {
-    selectedDate: Date | undefined;
-    setSelectedDate: React.Dispatch<React.SetStateAction<Date | undefined>>;
+    selectedDate: Date;
+    setSelectedDate: (value: Date) => void;
     setSelectedTime?: React.Dispatch<React.SetStateAction<string>>;
     selectedTime?: string;
     setStep?: React.Dispatch<React.SetStateAction<number>>;
@@ -102,3 +102,10 @@ export type ScheduleResultsType = {
     selectedTime: string;
     assignedMechanic: string;
 };
+
+export type MaintenanceType = {
+    notes: string
+    mn_assigned: string
+    mn_made: string
+    mn_completed: string
+}
