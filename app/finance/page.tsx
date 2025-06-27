@@ -120,6 +120,18 @@ export default function FinancePage() {
               }
               className="bg-[#a01217] text-white hover:bg-[#8b0f14] transition-colors p-2 w-fit h-fit"
             />
+
+            {/* ESTE BOTON SE VA A BORRAR SOLO ES PARA PROBAR COMO SE VE EL REPORTE DE UNA FACTURA */}
+            <Button
+              label={
+                <div className="flex items-center gap-2">
+                  <FaArrowRight className="w-4 h-4" />
+                  <span>Prueba invoices</span>
+                </div>
+              }
+              className="bg-[#a01217] text-white hover:bg-[#8b0f14] transition-colors p-2 w-fit h-fit"
+              onClick={() => router.push("/finance/invoices")}
+            />  
           </div>
         </div>
 
