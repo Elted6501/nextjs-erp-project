@@ -81,6 +81,9 @@ export default function SalesPage() {
   const [loadingClients, setLoadingClients] = useState(false);
   const [showClientSelection, setShowClientSelection] = useState(false);
 
+  // Estado para prevenir doble ejecución
+  const [isCreatingSale, setIsCreatingSale] = useState(false);
+
   // Cargar productos desde la base de datos
   useEffect(() => {
     fetch('/api/inventory/products')
@@ -227,6 +230,11 @@ export default function SalesPage() {
   };
 
   const handleCreateSale = async () => {
+    // Prevenir doble ejecución
+    if (isCreatingSale) {
+      return;
+    }
+
     if (rows.length === 0) {
       setModalMessage('Please add products to the cart before creating a sale.');
       setShowModal(true);
@@ -238,10 +246,16 @@ export default function SalesPage() {
       return;
     }
 
+    setIsCreatingSale(true);
+
     try {
+      // Determinar el product_id principal (primer producto del carrito)
+      const mainProductId = rows.length > 0 ? rows[0].product_id : null;
+
       const saleData = {
         client_id: selectedClient?.client_id || null,
         employee_id: null,
+        product_id: mainProductId, // Agregar product_id
         payment_method: 'Cash',
         vat: totalPrice * 0.16,
         notes: '', 
@@ -287,6 +301,8 @@ export default function SalesPage() {
       console.error('Error creating sale:', error);
       setModalMessage(`Error creating sale: ${error instanceof Error ? error.message : 'Unknown error'}`);
       setShowModal(true);
+    } finally {
+      setIsCreatingSale(false);
     }
   };
 
@@ -679,15 +695,15 @@ export default function SalesPage() {
               label={
                 <div className="flex items-center gap-2">
                   <ShoppingCart size={18} />
-                  <span>Create Sale</span>
+                  <span>{isCreatingSale ? 'Creating...' : 'Create Sale'}</span>
                 </div>
               }
               className={`px-8 py-3 rounded-lg font-semibold text-lg transition-all duration-200 ${
-                rows.length === 0 
+                rows.length === 0 || isCreatingSale
                   ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
                   : 'bg-green-600 hover:bg-green-700 text-white hover:shadow-lg transform hover:scale-105'
               }`}
-              onClick={rows.length > 0 ? handleCreateSale : () => {}}
+              onClick={(rows.length > 0 && !isCreatingSale) ? handleCreateSale : () => {}}
             />
             <Button 
               label={

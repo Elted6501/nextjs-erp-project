@@ -211,3 +211,152 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
+// PUT /api/sales/clients - Actualizar un cliente existente
+export async function PUT(request: NextRequest) {
+  try {
+    const supabase = await createClient();
+    const body = await request.json();
+    
+    // Validar que client_id esté presente
+    if (!body.client_id) {
+      return NextResponse.json(
+        { error: 'Client ID is required' },
+        { status: 400 }
+      );
+    }
+    
+    // Validación básica de campos requeridos
+    if (!body.email || !body.tax_id || !body.phone || !body.address || 
+        !body.city || !body.state || !body.country || !body.zip_code) {
+      return NextResponse.json(
+        { error: 'Missing required fields' },
+        { status: 400 }
+      );
+    }
+    
+    // Validar que tenga nombre o razón social según el tipo
+    if (body.client_type === 'Individual' && (!body.first_name || !body.last_name)) {
+      return NextResponse.json(
+        { error: 'First name and last name are required for individual clients' },
+        { status: 400 }
+      );
+    }
+    
+    if (body.client_type === 'Business' && !body.business_name) {
+      return NextResponse.json(
+        { error: 'Business name is required for business clients' },
+        { status: 400 }
+      );
+    }
+    
+    // Verificar si el cliente existe
+    const { data: existingClient, error: checkExistError } = await supabase
+      .from('clients')
+      .select('client_id')
+      .eq('client_id', body.client_id)
+      .single();
+    
+    if (checkExistError || !existingClient) {
+      return NextResponse.json(
+        { error: 'Client not found' },
+        { status: 404 }
+      );
+    }
+    
+    // Verificar si el email o tax_id ya existen en otros clientes
+    const { data: conflictingClients, error: checkConflictError } = await supabase
+      .from('clients')
+      .select('client_id')
+      .or(`email.eq.${body.email},tax_id.eq.${body.tax_id}`)
+      .neq('client_id', body.client_id)
+      .limit(1);
+    
+    if (checkConflictError) {
+      console.error('Error checking conflicting clients:', checkConflictError);
+      return NextResponse.json(
+        { error: 'Error validating client data' },
+        { status: 500 }
+      );
+    }
+    
+    if (conflictingClients && conflictingClients.length > 0) {
+      return NextResponse.json(
+        { error: 'Another client with this email or tax ID already exists' },
+        { status: 400 }
+      );
+    }
+    
+    // Preparar datos para actualizar
+    const updateData = {
+      client_type: body.client_type || 'Individual',
+      taxpayer_type: body.taxpayer_type || 'Physical Person',
+      business_name: body.business_name || null,
+      first_name: body.first_name || null,
+      last_name: body.last_name || null,
+      tax_id: body.tax_id,
+      email: body.email,
+      phone: body.phone,
+      mobile_phone: body.mobile_phone || null,
+      address: body.address,
+      city: body.city,
+      state: body.state,
+      zip_code: body.zip_code,
+      country: body.country || 'Mexico',
+      notes: body.notes || null,
+      status: body.status || 'Active',
+      updated_at: new Date().toISOString()
+    };
+    
+    const { data: updatedClient, error: updateError } = await supabase
+      .from('clients')
+      .update(updateData)
+      .eq('client_id', body.client_id)
+      .select()
+      .single();
+    
+    if (updateError) {
+      console.error('Error updating client:', updateError);
+      return NextResponse.json(
+        { error: 'Error updating client', details: updateError.message },
+        { status: 500 }
+      );
+    }
+    
+    // Mapear la respuesta
+    const mappedClient = {
+      client_id: updatedClient.client_id,
+      client_type: updatedClient.client_type,
+      taxpayer_type: updatedClient.taxpayer_type,
+      business_name: updatedClient.business_name,
+      first_name: updatedClient.first_name,
+      last_name: updatedClient.last_name,
+      tax_id: updatedClient.tax_id,
+      email: updatedClient.email,
+      phone: updatedClient.phone,
+      mobile_phone: updatedClient.mobile_phone,
+      address: updatedClient.address,
+      city: updatedClient.city,
+      state: updatedClient.state,
+      zip_code: updatedClient.zip_code,
+      country: updatedClient.country,
+      notes: updatedClient.notes,
+      status: updatedClient.status,
+      created_at: updatedClient.created_at,
+      updated_at: updatedClient.updated_at
+    };
+    
+    return NextResponse.json({
+      success: true,
+      message: 'Client updated successfully',
+      data: mappedClient
+    });
+    
+  } catch (error) {
+    console.error('Unexpected error:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}
