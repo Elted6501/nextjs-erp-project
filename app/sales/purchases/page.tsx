@@ -3,7 +3,23 @@
 import { useState, useEffect } from 'react';
 import Button from '@/components/Button';
 import styles from "@/app/sales/sales.module.css";
-import { Trash, ChevronDown, User, Users, Building, X } from 'lucide-react';
+import { 
+  Trash, 
+  User, 
+  Users, 
+  Building, 
+  X, 
+  Search,
+  Plus,
+  Minus,
+  ShoppingCart,
+  DollarSign,
+  Package,
+  Clock,
+  TrendingUp,
+  Eye,
+  EyeOff
+} from 'lucide-react';
 
 // Función para obtener la fecha actual en formato YYYY-MM-DD
 const getCurrentDate = () => {
@@ -55,6 +71,8 @@ export default function SalesPage() {
   const [modalMessage, setModalMessage] = useState('');
   const [menuOpen, setMenuOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [showProductsList, setShowProductsList] = useState(false);
+  const [productSearch, setProductSearch] = useState('');
   
   // Estados para la selección de cliente
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
@@ -86,8 +104,8 @@ export default function SalesPage() {
     setLoadingClients(true);
     try {
       const params = new URLSearchParams({
-        limit: '50', // Límite para el dropdown
-        status: 'Active', // Solo clientes activos
+        limit: '50',
+        status: 'Active',
         ...(search && { search })
       });
 
@@ -108,14 +126,12 @@ export default function SalesPage() {
     }
   };
 
-  // Cargar clientes cuando se abre el dropdown
   useEffect(() => {
     if (showClientDropdown) {
       loadClients(clientSearch);
     }
   }, [showClientDropdown]);
 
-  // Búsqueda de clientes con debounce
   useEffect(() => {
     if (showClientDropdown) {
       const timer = setTimeout(() => {
@@ -127,7 +143,7 @@ export default function SalesPage() {
 
   const handleAddProduct = () => {
     const searchValue = inputId.trim().toUpperCase();
-    const qty = parseInt(inputQty);
+    const qty = parseInt(inputQty) || 1;
 
     const product = products.find(p => 
       p.sku.toUpperCase() === searchValue || 
@@ -140,12 +156,18 @@ export default function SalesPage() {
       return;
     }
 
-    if (!qty || qty <= 0) {
+    if (qty <= 0) {
       setModalMessage('Please enter a valid quantity greater than 0.');
       setShowModal(true);
       return;
     }
 
+    addProductToCart(product, qty);
+    setInputId('');
+    setInputQty('');
+  };
+
+  const addProductToCart = (product: Product, qty: number = 1) => {
     const existingItemIndex = rows.findIndex(row => row.product_id === product.product_id);
     
     if (existingItemIndex >= 0) {
@@ -167,9 +189,19 @@ export default function SalesPage() {
       };
       setRows(prev => [...prev, newRow]);
     }
+  };
 
-    setInputId('');
-    setInputQty('');
+  const updateQuantity = (index: number, change: number) => {
+    const updatedRows = [...rows];
+    const newQuantity = updatedRows[index].quantity + change;
+    
+    if (newQuantity <= 0) {
+      setRows(prevRows => prevRows.filter((_, i) => i !== index));
+    } else {
+      updatedRows[index].quantity = newQuantity;
+      updatedRows[index].totalPrice = newQuantity * updatedRows[index].unitPrice;
+      setRows(updatedRows);
+    }
   };
 
   const handleDelete = (indexToDelete: number) => {
@@ -201,7 +233,6 @@ export default function SalesPage() {
       return;
     }
 
-    // Mostrar selección de cliente si no hay uno seleccionado
     if (!selectedClient && !showClientSelection) {
       setShowClientSelection(true);
       return;
@@ -265,216 +296,411 @@ export default function SalesPage() {
     }
   };
 
+  const filteredProducts = products.filter(product =>
+    product.name.toLowerCase().includes(productSearch.toLowerCase()) ||
+    product.sku.toLowerCase().includes(productSearch.toLowerCase()) ||
+    product.brand.toLowerCase().includes(productSearch.toLowerCase())
+  );
+
   const totalQuantity = rows.reduce((sum, row) => sum + row.quantity, 0);
   const totalPrice = rows.reduce((sum, row) => sum + row.totalPrice, 0);
 
   if (loading) {
     return (
       <div className={`flex justify-center items-center h-screen ${styles.contentBackground}`}>
-        <div className="text-gray-600">Loading products...</div>
+        <div className="flex flex-col items-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-800 mb-4"></div>
+          <div className="text-gray-600 font-medium">Loading products...</div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="flex relative">
-      {/* Botón de Empleado */}
+    <div className="flex relative min-h-screen">
+      {/* Employee Badge */}
       <div className="absolute top-4 left-4 z-20">
-        <div className="relative">
-          <button className="bg-red-800 text-white px-4 py-2 rounded-md cursor-text">
-            Employee 1
-          </button>
+        <div className="bg-gradient-to-r from-red-800 to-red-900 text-white px-4 py-2 rounded-lg shadow-lg">
+          <div className="flex items-center gap-2">
+            <User size={18} />
+            <span className="font-medium">Employee 1</span>
+          </div>
         </div>
       </div>
 
       <div className={`flex flex-col flex-1 ${styles.contentBackground}`}>
-        <div className="max-w-4xl mx-auto mt-12 px-4">
-          <div className="flex justify-between items-center mb-4">
-            <h1 className="font-bold text-xl font-serif text-gray-800">
-              Add product by SKU or ID
-            </h1>
+        <div className="max-w-6xl mx-auto mt-16 px-4">
+          {/* Header Section */}
+          <div className="flex justify-between items-center mb-6">
+            <div className="flex items-center gap-3">
+              <div className="bg-red-800 p-2 rounded-lg">
+                <ShoppingCart className="text-white" size={24} />
+              </div>
+              <div>
+                <h1 className="font-bold text-2xl text-gray-800">Point of Sale</h1>
+                <p className="text-gray-600 text-sm">Add products to cart and create sales</p>
+              </div>
+            </div>
             <div className="relative">
               <button
                 onClick={() => setMenuOpen(!menuOpen)}
-                className="bg-red-800 text-white px-4 py-2 rounded-md hover:bg-red-900 transition cursor-pointer"
+                className="bg-gradient-to-r from-red-800 to-red-900 text-white px-6 py-3 rounded-lg hover:shadow-lg transition-all duration-200 flex items-center gap-2"
               >
-                Options ▾
+                <TrendingUp size={18} />
+                <span>Reports</span>
+                <span className="text-xs">▾</span>
               </button>
               {menuOpen && (
-                <div className="absolute right-0 top-full mt-2 min-w-[10rem] bg-white rounded-md shadow-lg z-10 px-2 py-1">
+                <div className="absolute right-0 top-full mt-2 min-w-[12rem] bg-white rounded-lg shadow-xl border z-10 py-2">
                   <ul className="text-sm text-gray-700">
-                    <li className="px-4 py-2 hover:bg-gray-100 cursor-pointer rounded">Sales of the day</li>
-                    <li className="px-4 py-2 hover:bg-gray-100 cursor-pointer rounded">Sales of the month</li>
+                    <li className="px-4 py-3 hover:bg-gray-100 cursor-pointer flex items-center gap-2 transition-colors">
+                      <Clock size={16} />
+                      Sales of the day
+                    </li>
+                    <li className="px-4 py-3 hover:bg-gray-100 cursor-pointer flex items-center gap-2 transition-colors">
+                      <TrendingUp size={16} />
+                      Sales of the month
+                    </li>
                   </ul>
                 </div>
               )}
             </div>
           </div>
 
+          {/* Quick Stats */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Products Available</p>
+                  <p className="text-2xl font-bold text-gray-900">{products.length}</p>
+                </div>
+                <Package className="text-blue-500" size={32} />
+              </div>
+            </div>
+            <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Items in Cart</p>
+                  <p className="text-2xl font-bold text-gray-900">{totalQuantity}</p>
+                </div>
+                <ShoppingCart className="text-green-500" size={32} />
+              </div>
+            </div>
+            <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Cart Total</p>
+                  <p className="text-2xl font-bold text-gray-900">${totalPrice.toFixed(2)}</p>
+                </div>
+                <DollarSign className="text-purple-500" size={32} />
+              </div>
+            </div>
+          </div>
+
           {/* Client Selection Section */}
-          <div className="mb-4 p-4 bg-white rounded-lg shadow-sm border">
+          <div className="mb-6 p-6 bg-white rounded-xl shadow-sm border border-gray-200">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <User size={20} className="text-gray-600" />
-                <span className="font-medium text-gray-700">Selected Client:</span>
-                {selectedClient ? (
-                  <div className="flex items-center gap-2 bg-blue-50 px-3 py-1 rounded-lg">
-                    {selectedClient.client_type === 'Business' ? 
-                      <Building size={14} className="text-blue-600" /> : 
-                      <Users size={14} className="text-blue-600" />
-                    }
-                    <span className="text-blue-800 font-medium">
-                      {getClientDisplayName(selectedClient)}
-                    </span>
-                    <button
-                      onClick={clearClientSelection}
-                      className="text-red-500 hover:text-red-700 ml-2"
-                    >
-                      <X size={14} />
-                    </button>
-                  </div>
-                ) : (
-                  <span className="text-gray-500 italic">No client selected</span>
-                )}
+              <div className="flex items-center gap-4">
+                <div className="bg-blue-100 p-2 rounded-lg">
+                  <User size={20} className="text-blue-600" />
+                </div>
+                <div>
+                  <span className="font-semibold text-gray-800">Customer</span>
+                  {selectedClient ? (
+                    <div className="flex items-center gap-2 mt-1">
+                      <div className="flex items-center gap-2 bg-blue-50 px-3 py-2 rounded-lg border border-blue-200">
+                        {selectedClient.client_type === 'Business' ? 
+                          <Building size={16} className="text-blue-600" /> : 
+                          <Users size={16} className="text-blue-600" />
+                        }
+                        <span className="text-blue-800 font-medium">
+                          {getClientDisplayName(selectedClient)}
+                        </span>
+                        <button
+                          onClick={clearClientSelection}
+                          className="text-red-500 hover:text-red-700 ml-2 p-1 hover:bg-red-50 rounded"
+                        >
+                          <X size={14} />
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-gray-500 text-sm mt-1">No customer selected</p>
+                  )}
+                </div>
               </div>
               <Button
-                label="Select Client"
+                label="Select Customer"
                 onClick={() => {
                   setShowClientSelection(true);
                   setShowClientDropdown(true);
                 }}
-                className="bg-blue-600 hover:bg-blue-700 text-white text-sm px-3 py-1"
+                className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition-colors"
               />
             </div>
           </div>
 
-          <div className="flex gap-4 mb-4 items-end">
-            <div>
-              <label className="block text-sm font-medium text-gray-700">SKU / ID</label>
-              <input
-                type="text"
-                value={inputId}
-                onChange={(e) => setInputId(e.target.value)}
-                onKeyPress={handleKeyPress}
-                placeholder="Product SKU or ID"
-                className="border rounded px-2 py-1 w-40"
+          {/* Product Input Section */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+            <div className="flex flex-col md:flex-row gap-4 items-end">
+              <div className="flex-1">
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Search Product
+                </label>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+                  <input
+                    type="text"
+                    value={inputId}
+                    onChange={(e) => setInputId(e.target.value)}
+                    onKeyPress={handleKeyPress}
+                    placeholder="Enter SKU or Product ID"
+                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all"
+                  />
+                </div>
+              </div>
+              <div className="w-32">
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Quantity
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  value={inputQty}
+                  onChange={(e) => setInputQty(e.target.value)}
+                  onKeyPress={handleKeyPress}
+                  placeholder="1"
+                  className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all"
+                />
+              </div>
+              <Button 
+                label={
+                  <div className="flex items-center gap-2">
+                    <Plus size={18} />
+                    <span>Add to Cart</span>
+                  </div>
+                }
+                className="bg-red-800 hover:bg-red-900 text-white px-6 py-3 rounded-lg font-medium transition-all duration-200 hover:shadow-lg"
+                onClick={handleAddProduct}
               />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Quantity</label>
-              <input
-                type="text"
-                inputMode="numeric"
-                pattern="[0-9]*"
-                value={inputQty}
-                onChange={(e) => setInputQty(e.target.value)}
-                onKeyPress={handleKeyPress}
-                placeholder="Qty"
-                className="border rounded px-2 py-1 w-28 no-spinners"
-              />
-            </div>
-            <div className="pt-6">
-              <Button label="Add" className="cursor-pointer" onClick={handleAddProduct} />
             </div>
           </div>
 
-          {/* Lista de productos disponibles */}
-          <details className="mb-4">
-            <summary className="cursor-pointer text-sm text-gray-600 hover:text-gray-800">
-              View available products ({products.length})
-            </summary>
-            <div className="mt-2 max-h-40 overflow-y-auto bg-gray-50 rounded p-2">
-              <table className="w-full text-xs">
-                <thead>
-                  <tr className="text-left border-b">
-                    <th className="p-1">SKU</th>
-                    <th className="p-1">Name</th>
-                    <th className="p-1">Stock</th>
-                    <th className="p-1">Price</th>
+          {/* Products List Toggle */}
+          <div className="mb-6">
+            <button
+              onClick={() => setShowProductsList(!showProductsList)}
+              className="flex items-center gap-2 text-gray-600 hover:text-gray-800 font-medium transition-colors"
+            >
+              {showProductsList ? <EyeOff size={18} /> : <Eye size={18} />}
+              {showProductsList ? 'Hide' : 'View'} Available Products ({products.length})
+            </button>
+            
+            {showProductsList && (
+              <div className="mt-4 bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                <div className="p-4 border-b border-gray-200">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+                    <input
+                      type="text"
+                      placeholder="Search products..."
+                      value={productSearch}
+                      onChange={(e) => setProductSearch(e.target.value)}
+                      className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                </div>
+                <div className="max-h-64 overflow-y-auto">
+                  <table className="w-full">
+                    <thead className="bg-gray-50 sticky top-0">
+                      <tr className="text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                        <th className="px-4 py-3">SKU</th>
+                        <th className="px-4 py-3">Product</th>
+                        <th className="px-4 py-3">Brand</th>
+                        <th className="px-4 py-3">Stock</th>
+                        <th className="px-4 py-3">Price</th>
+                        <th className="px-4 py-3">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-200">
+                      {filteredProducts.map(product => (
+                        <tr key={product.product_id} className="hover:bg-gray-50 transition-colors">
+                          <td className="px-4 py-3 text-sm font-mono text-gray-900">{product.sku}</td>
+                          <td className="px-4 py-3">
+                            <div>
+                              <div className="text-sm font-medium text-gray-900">{product.name}</div>
+                              <div className="text-xs text-gray-500 truncate max-w-xs">{product.description}</div>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 text-sm text-gray-600">{product.brand}</td>
+                          <td className="px-4 py-3">
+                            <span className={`text-sm font-semibold ${
+                              (product.stock || 0) <= 0 ? 'text-red-600' : 
+                              (product.stock || 0) < 10 ? 'text-yellow-600' : 
+                              'text-green-600'
+                            }`}>
+                              {product.stock || 0}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-sm font-semibold text-gray-900">
+                            ${Number(product.sale_price).toFixed(2)}
+                          </td>
+                          <td className="px-4 py-3">
+                            <button
+                              onClick={() => addProductToCart(product, 1)}
+                              className="bg-green-600 hover:bg-green-700 text-white p-2 rounded-lg transition-colors"
+                              title="Add to cart"
+                            >
+                              <Plus size={16} />
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Shopping Cart */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mb-6">
+            <div className="bg-gradient-to-r from-red-800 to-red-900 text-white px-6 py-4">
+              <div className="flex items-center gap-3">
+                <ShoppingCart size={24} />
+                <h2 className="text-xl font-semibold">Shopping Cart</h2>
+                <span className="bg-white text-red-800 px-2 py-1 rounded-full text-sm font-bold">
+                  {rows.length}
+                </span>
+              </div>
+            </div>
+            
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-50">
+                  <tr className="text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                    <th className="px-6 py-4">Product</th>
+                    <th className="px-6 py-4">Date</th>
+                    <th className="px-6 py-4">Description</th>
+                    <th className="px-6 py-4 text-center">Quantity</th>
+                    <th className="px-6 py-4 text-right">Unit Price</th>
+                    <th className="px-6 py-4 text-right">Total</th>
+                    <th className="px-6 py-4 text-center">Actions</th>
                   </tr>
                 </thead>
-                <tbody>
-                  {products.map(product => (
-                    <tr key={product.product_id} className="border-b">
-                      <td className="p-1">{product.sku}</td>
-                      <td className="p-1">{product.name}</td>
-                      <td className={`p-1 font-semibold ${
-                        (product.stock || 0) <= 0 ? 'text-red-600' : 
-                        (product.stock || 0) < 10 ? 'text-yellow-600' : 
-                        'text-green-600'
-                      }`}>
-                        {product.stock || 0}
+                <tbody className="divide-y divide-gray-200">
+                  {rows.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="px-6 py-12 text-center">
+                        <div className="flex flex-col items-center">
+                          <ShoppingCart size={48} className="text-gray-300 mb-4" />
+                          <p className="text-gray-500 font-medium">Your cart is empty</p>
+                          <p className="text-gray-400 text-sm">Add products to start a sale</p>
+                        </div>
                       </td>
-                      <td className="p-1">${Number(product.sale_price).toFixed(2)}</td>
                     </tr>
-                  ))}
+                  ) : (
+                    rows.map((row, index) => (
+                      <tr key={index} className="hover:bg-gray-50 transition-colors">
+                        <td className="px-6 py-4">
+                          <div>
+                            <div className="font-medium text-gray-900">{row.name}</div>
+                            <div className="text-sm text-gray-500 font-mono">{row.id}</div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-600">{row.date}</td>
+                        <td className="px-6 py-4 text-sm text-gray-600 max-w-xs truncate">
+                          {row.description}
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center justify-center gap-2">
+                            <button
+                              onClick={() => updateQuantity(index, -1)}
+                              className="bg-red-100 hover:bg-red-200 text-red-600 p-1 rounded-lg transition-colors"
+                            >
+                              <Minus size={16} />
+                            </button>
+                            <span className="font-semibold text-gray-900 min-w-[2rem] text-center">
+                              {row.quantity}
+                            </span>
+                            <button
+                              onClick={() => updateQuantity(index, 1)}
+                              className="bg-green-100 hover:bg-green-200 text-green-600 p-1 rounded-lg transition-colors"
+                            >
+                              <Plus size={16} />
+                            </button>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 text-right font-medium text-gray-900">
+                          ${row.unitPrice.toFixed(2)}
+                        </td>
+                        <td className="px-6 py-4 text-right font-bold text-gray-900">
+                          ${row.totalPrice.toFixed(2)}
+                        </td>
+                        <td className="px-6 py-4 text-center">
+                          <button
+                            onClick={() => handleDelete(index)}
+                            className="bg-red-100 hover:bg-red-200 text-red-600 p-2 rounded-lg transition-colors"
+                            title="Remove from cart"
+                          >
+                            <Trash size={16} />
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
+                {rows.length > 0 && (
+                  <tfoot className="bg-gray-50">
+                    <tr className="font-bold text-gray-900">
+                      <td className="px-6 py-4" colSpan={3}>
+                        <div className="flex items-center gap-2">
+                          <DollarSign size={20} className="text-green-600" />
+                          <span className="text-lg">Totals</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-center text-lg">{totalQuantity}</td>
+                      <td className="px-6 py-4"></td>
+                      <td className="px-6 py-4 text-right text-xl text-green-600">
+                        ${totalPrice.toFixed(2)}
+                      </td>
+                      <td className="px-6 py-4"></td>
+                    </tr>
+                  </tfoot>
+                )}
               </table>
             </div>
-          </details>
+          </div>
 
-          <table className="min-w-full bg-white rounded-xl shadow-md overflow-hidden">
-            <thead className="bg-red-800 text-white text-sm font-semibold">
-              <tr>
-                <th className="px-6 py-3 text-left">SKU</th>
-                <th className="px-6 py-3 text-left">Date</th>
-                <th className="px-6 py-3 text-left">Name</th>
-                <th className="px-6 py-3 text-left">Description</th>
-                <th className="px-6 py-3 text-right">Qty</th>
-                <th className="px-6 py-3 text-right">Unit Price</th>
-                <th className="px-6 py-3 text-right">Total</th>
-                <th className="px-6 py-3 text-center">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="text-gray-700 text-sm">
-              {rows.length === 0 ? (
-                <tr>
-                  <td colSpan={8} className="px-6 py-8 text-center text-gray-500">
-                    No products in cart. Add products to start a sale.
-                  </td>
-                </tr>
-              ) : (
-                rows.map((row, index) => (
-                  <tr key={index} className="border-t hover:bg-gray-50">
-                    <td className="px-6 py-4">{row.id}</td>
-                    <td className="px-6 py-4">{row.date}</td>
-                    <td className="px-6 py-4">{row.name}</td>
-                    <td className="px-6 py-4">{row.description}</td>
-                    <td className="px-6 py-4 text-right">{row.quantity}</td>
-                    <td className="px-6 py-4 text-right">${row.unitPrice.toFixed(2)}</td>
-                    <td className="px-6 py-4 text-right font-semibold">${row.totalPrice.toFixed(2)}</td>
-                    <td className="px-6 py-4 text-center">
-                      <button
-                        onClick={() => handleDelete(index)}
-                        className="text-red-600 hover:text-red-800 transition cursor-pointer"
-                      >
-                        <Trash size={18} />
-                      </button>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-            <tfoot className="bg-gray-50 font-semibold text-gray-900 text-sm border-t">
-              <tr>
-                <td className="px-6 py-4" colSpan={4}>Totals</td>
-                <td className="px-6 py-4 text-right">{totalQuantity}</td>
-                <td className="px-6 py-4"></td>
-                <td className="px-6 py-4 text-right text-lg">${totalPrice.toFixed(2)}</td>
-                <td></td>
-              </tr>
-            </tfoot>
-          </table>
-
-          <div className="mt-4 flex flex-wrap gap-4">
+          {/* Action Buttons */}
+          <div className="flex flex-wrap gap-4 justify-center">
             <Button 
-              label="Create sale" 
-              className={`cursor-pointer ${rows.length === 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
+              label={
+                <div className="flex items-center gap-2">
+                  <ShoppingCart size={18} />
+                  <span>Create Sale</span>
+                </div>
+              }
+              className={`px-8 py-3 rounded-lg font-semibold text-lg transition-all duration-200 ${
+                rows.length === 0 
+                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
+                  : 'bg-green-600 hover:bg-green-700 text-white hover:shadow-lg transform hover:scale-105'
+              }`}
               onClick={rows.length > 0 ? handleCreateSale : () => {}}
             />
             <Button 
-              label="Clear cart" 
-              className={`cursor-pointer ${rows.length === 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
+              label={
+                <div className="flex items-center gap-2">
+                  <Trash size={18} />
+                  <span>Clear Cart</span>
+                </div>
+              }
+              className={`px-8 py-3 rounded-lg font-semibold text-lg transition-all duration-200 ${
+                rows.length === 0 
+                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
+                  : 'bg-red-600 hover:bg-red-700 text-white hover:shadow-lg'
+              }`}
               onClick={rows.length > 0 ? () => setRows([]) : () => {}}
             />
           </div>
@@ -483,26 +709,29 @@ export default function SalesPage() {
 
       {/* Client Selection Modal */}
       {showClientSelection && (
-        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl p-6 w-full max-w-md max-h-[80vh] overflow-hidden shadow-xl">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-lg font-semibold text-gray-800">Select Client</h2>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl p-6 w-full max-w-md max-h-[80vh] overflow-hidden shadow-2xl">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-xl font-bold text-gray-800">Select Customer</h2>
               <button
                 onClick={() => setShowClientSelection(false)}
-                className="text-gray-500 hover:text-gray-700"
+                className="text-gray-500 hover:text-gray-700 p-1 hover:bg-gray-100 rounded"
               >
                 <X size={20} />
               </button>
             </div>
             
             <div className="mb-4">
-              <input
-                type="text"
-                placeholder="Search clients..."
-                value={clientSearch}
-                onChange={(e) => setClientSearch(e.target.value)}
-                className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+                <input
+                  type="text"
+                  placeholder="Search customers..."
+                  value={clientSearch}
+                  onChange={(e) => setClientSearch(e.target.value)}
+                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
             </div>
 
             <div className="mb-4">
@@ -511,23 +740,24 @@ export default function SalesPage() {
                   setSelectedClient(null);
                   setShowClientSelection(false);
                 }}
-                className="w-full text-left px-3 py-2 rounded-lg hover:bg-gray-100 border border-dashed border-gray-300"
+                className="w-full text-left px-4 py-3 rounded-lg hover:bg-gray-100 border-2 border-dashed border-gray-300 transition-colors"
               >
-                <div className="flex items-center gap-2">
-                  <User size={16} className="text-gray-500" />
-                  <span className="text-gray-600 italic">No client (Anonymous sale)</span>
+                <div className="flex items-center gap-3">
+                  <User size={18} className="text-gray-500" />
+                  <span className="text-gray-600 font-medium">Anonymous Sale (No Customer)</span>
                 </div>
               </button>
             </div>
 
             <div className="max-h-60 overflow-y-auto">
               {loadingClients ? (
-                <div className="text-center py-4 text-gray-500">
-                  Loading clients...
+                <div className="text-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                  <p className="text-gray-500">Loading customers...</p>
                 </div>
               ) : clients.length === 0 ? (
-                <div className="text-center py-4 text-gray-500">
-                  {clientSearch ? 'No clients found matching your search.' : 'No active clients found.'}
+                <div className="text-center py-8 text-gray-500">
+                  {clientSearch ? 'No customers found matching your search.' : 'No active customers found.'}
                 </div>
               ) : (
                 <div className="space-y-2">
@@ -535,15 +765,15 @@ export default function SalesPage() {
                     <button
                       key={client.client_id}
                       onClick={() => handleClientSelect(client)}
-                      className="w-full text-left px-3 py-2 rounded-lg hover:bg-blue-50 border border-gray-200 hover:border-blue-300 transition-colors"
+                      className="w-full text-left px-4 py-3 rounded-lg hover:bg-blue-50 border border-gray-200 hover:border-blue-300 transition-all duration-200"
                     >
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-3">
                         {client.client_type === 'Business' ? 
-                          <Building size={16} className="text-blue-600" /> : 
-                          <Users size={16} className="text-green-600" />
+                          <Building size={18} className="text-blue-600" /> : 
+                          <Users size={18} className="text-green-600" />
                         }
-                        <div>
-                          <div className="font-medium">
+                        <div className="flex-1">
+                          <div className="font-medium text-gray-900">
                             {getClientDisplayName(client)}
                           </div>
                           <div className="text-sm text-gray-500">
@@ -560,17 +790,32 @@ export default function SalesPage() {
         </div>
       )}
 
-      {/* Modal de mensajes */}
+      {/* Success/Error Modal */}
       {showModal && (
-        <div className="fixed inset-0 backdrop-blur-sm bg-white/30 flex justify-center items-center z-50">
-          <div className="bg-white p-6 rounded-xl shadow-lg max-w-sm w-full text-center">
-            <h2 className="text-lg font-bold text-red-700 mb-2">
-              {modalMessage.includes('successfully') ? 'Success' : 'Warning'}
+        <div className="fixed inset-0 backdrop-blur-sm bg-black bg-opacity-40 flex justify-center items-center z-50">
+          <div className="bg-white p-8 rounded-xl shadow-2xl max-w-md w-full text-center mx-4">
+            <div className={`w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center ${
+              modalMessage.includes('successfully') ? 'bg-green-100' : 'bg-red-100'
+            }`}>
+              {modalMessage.includes('successfully') ? (
+                <div className="text-green-600 text-2xl">✓</div>
+              ) : (
+                <div className="text-red-600 text-2xl">⚠</div>
+              )}
+            </div>
+            <h2 className={`text-xl font-bold mb-2 ${
+              modalMessage.includes('successfully') ? 'text-green-700' : 'text-red-700'
+            }`}>
+              {modalMessage.includes('successfully') ? 'Success!' : 'Warning'}
             </h2>
-            <p className="text-gray-700 mb-4">{modalMessage}</p>
+            <p className="text-gray-700 mb-6 leading-relaxed">{modalMessage}</p>
             <button
               onClick={() => setShowModal(false)}
-              className="bg-red-700 text-white px-4 py-2 rounded hover:bg-red-800 transition cursor-pointer"
+              className={`px-6 py-3 rounded-lg font-semibold transition-colors ${
+                modalMessage.includes('successfully') 
+                  ? 'bg-green-600 hover:bg-green-700 text-white' 
+                  : 'bg-red-600 hover:bg-red-700 text-white'
+              }`}
             >
               Close
             </button>
