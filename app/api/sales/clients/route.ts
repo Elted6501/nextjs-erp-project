@@ -218,10 +218,10 @@ export async function PUT(request: NextRequest) {
     const supabase = await createClient();
     const body = await request.json();
     
-    // Validar que client_id esté presente
+    // Validar que client_id esté presente en el body
     if (!body.client_id) {
       return NextResponse.json(
-        { error: 'Client ID is required' },
+        { error: 'Client ID is required in request body' },
         { status: 400 }
       );
     }
