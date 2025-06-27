@@ -183,11 +183,11 @@ export default function ClientPage() {
         setSaving(true);
         try {
             if (editingClient) {
-                const res = await fetch(`/api/sales/clients/${editingClient.client_id}`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(newClient),
-                });
+                const res = await fetch('/api/sales/clients', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(newClient), // newClient ya incluye client_id
+            });
                 
                 if (!res.ok) {
                     const error = await res.json();
