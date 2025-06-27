@@ -27,7 +27,6 @@ export async function POST(request: Request) {
     const {
       client_id,
       employee_id,
-      product_id, // Agregar product_id
       payment_method,
       vat,
       notes,
@@ -72,74 +71,77 @@ export async function POST(request: Request) {
         }
       }
 
-      // 2. Crear la venta - manejar las foreign keys opcionales
-      const saleData: any = {
-        payment_method,
-        vat: vat || 0,
-        notes: notes || '',
-        status: true,
-        sale_date: new Date().toISOString(),
-      };
+      // 2. Crear las ventas - UN REGISTRO POR CADA PRODUCTO
+      const createdSales = [];
+      const saleDate = new Date().toISOString();
+      
+      // Generar un identificador único para agrupar todos los productos de esta venta
+      const saleReference = `SALE-${Date.now()}`;
+      
+      for (const item of items) {
+        const saleData: any = {
+          client_id: client_id || null,
+          employee_id: employee_id || null,
+          product_id: item.product_id, // Cada registro tiene su product_id
+          payment_method,
+          vat: (vat || 0) * (item.totalPrice / items.reduce((sum: number, i: SaleItem) => sum + i.totalPrice, 0)), // Prorratear el IVA
+          notes: notes ? `${notes} | Ref: ${saleReference}` : `Ref: ${saleReference}`, // Agregar referencia para agrupar
+          status: true,
+          sale_date: saleDate,
+        };
 
-      // Solo agregar client_id si existe y es válido
-      if (client_id && client_id !== null) {
-        saleData.client_id = client_id;
-      }
+        const { data: sale, error: saleError } = await supabase
+          .from("sales")
+          .insert(saleData)
+          .select()
+          .single();
 
-      // Solo agregar employee_id si existe y es válido
-      if (employee_id && employee_id !== null) {
-        saleData.employee_id = employee_id;
-      }
-
-      // Agregar product_id si existe y es válido
-      if (product_id && product_id !== null) {
-        saleData.product_id = product_id;
-      }
-
-      const { data: sale, error: saleError } = await supabase
-        .from("sales")
-        .insert(saleData)
-        .select()
-        .single();
-
-      if (saleError) {
-        console.error("Error creating sale:", saleError);
-        
-        // Manejar errores de foreign key
-        if (saleError.message.includes("foreign key constraint")) {
-          if (saleError.message.includes("employee")) {
-            return NextResponse.json(
-              { 
-                error: "Invalid employee ID", 
-                details: "The specified employee does not exist. Please check the employee ID or create the employee first."
-              },
-              { status: 400 }
-            );
+        if (saleError) {
+          console.error("Error creating sale:", saleError);
+          
+          // Manejar errores de foreign key
+          if (saleError.message.includes("foreign key constraint")) {
+            if (saleError.message.includes("employee")) {
+              return NextResponse.json(
+                { 
+                  error: "Invalid employee ID", 
+                  details: "The specified employee does not exist."
+                },
+                { status: 400 }
+              );
+            }
+            if (saleError.message.includes("client")) {
+              return NextResponse.json(
+                { 
+                  error: "Invalid client ID", 
+                  details: "The specified client does not exist."
+                },
+                { status: 400 }
+              );
+            }
+            if (saleError.message.includes("product")) {
+              return NextResponse.json(
+                { 
+                  error: "Invalid product ID", 
+                  details: `Product ${item.product_id} does not exist.`
+                },
+                { status: 400 }
+              );
+            }
           }
-          if (saleError.message.includes("client")) {
-            return NextResponse.json(
-              { 
-                error: "Invalid client ID", 
-                details: "The specified client does not exist. Please check the client ID or create the client first."
-              },
-              { status: 400 }
-            );
-          }
-          if (saleError.message.includes("product")) {
-            return NextResponse.json(
-              { 
-                error: "Invalid product ID", 
-                details: "The specified product does not exist. Please check the product ID or create the product first."
-              },
-              { status: 400 }
-            );
-          }
+          
+          return NextResponse.json(
+            { error: "Failed to create sale", details: saleError.message },
+            { status: 500 }
+          );
         }
-        
-        return NextResponse.json(
-          { error: "Failed to create sale", details: saleError.message },
-          { status: 500 }
-        );
+
+        createdSales.push({
+          sale_id: sale.sale_id,
+          product_id: item.product_id,
+          quantity: item.quantity,
+          total: item.totalPrice
+        });
       }
 
       // 3. Actualizar el stock en la tabla products
@@ -158,14 +160,14 @@ export async function POST(request: Request) {
           throw new Error(`Error updating stock for product ${item.product_id}: ${updateError.message}`);
         }
 
-        // 4. Crear registro de movimiento de inventario (opcional)
+        // 4. Crear registro de movimiento de inventario
         const movementData: any = {
           product_id: item.product_id,
           movement_type: 'exit',
           quantity: item.quantity,
-          movement_date: new Date().toISOString(),
-          reference: `SALE-${sale.sale_id}`,
-          user_id: employee_id || 1, // user_id en lugar de employee_id según tu esquema
+          movement_date: saleDate,
+          reference: saleReference,
+          user_id: employee_id || 1,
         };
 
         const { error: movementError } = await supabase
@@ -178,15 +180,17 @@ export async function POST(request: Request) {
         }
       }
 
-      // Calcular el total
-      const subtotal = items.reduce((sum: number, item: SaleItem) => sum + item.totalPrice, 0);
-      const total = subtotal + (vat || 0);
+      // Calcular el total general
+      const totalAmount = items.reduce((sum: number, item: SaleItem) => sum + item.totalPrice, 0);
+      const totalWithVat = totalAmount + (vat || 0);
 
       return NextResponse.json({
         success: true,
-        sale_id: sale.sale_id,
-        total: total,
-        message: "Sale created successfully and stock updated"
+        sale_reference: saleReference,
+        sales_created: createdSales,
+        total_items: items.length,
+        total_amount: totalWithVat,
+        message: `Sale created successfully with ${items.length} products. Reference: ${saleReference}`
       });
 
     } catch (transactionError) {

@@ -249,13 +249,9 @@ export default function SalesPage() {
     setIsCreatingSale(true);
 
     try {
-      // Determinar el product_id principal (primer producto del carrito)
-      const mainProductId = rows.length > 0 ? rows[0].product_id : null;
-
       const saleData = {
         client_id: selectedClient?.client_id || null,
         employee_id: null,
-        product_id: mainProductId, // Agregar product_id
         payment_method: 'Cash',
         vat: totalPrice * 0.16,
         notes: '', 
@@ -288,7 +284,12 @@ export default function SalesPage() {
         ? ` - Client: ${getClientDisplayName(selectedClient)}`
         : ' - No client assigned';
 
-      setModalMessage(`Sale created successfully! Sale ID: ${result.sale_id} - Total: $${result.total.toFixed(2)}${clientInfo}`);
+      // Manejar respuesta con múltiples productos
+      const saleInfo = result.sales_created ? 
+        `${result.total_items} products sold - Ref: ${result.sale_reference}` :
+        `Sale ID: ${result.sale_id}`;
+
+      setModalMessage(`Sale created successfully! ${saleInfo} - Total: ${(result.total_amount || result.total).toFixed(2)}${clientInfo}`);
       setShowModal(true);
       
       setTimeout(() => {
