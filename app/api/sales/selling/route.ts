@@ -27,6 +27,7 @@ export async function POST(request: Request) {
     const {
       client_id,
       employee_id,
+      product_id, // Agregar product_id
       payment_method,
       vat,
       notes,
@@ -90,6 +91,11 @@ export async function POST(request: Request) {
         saleData.employee_id = employee_id;
       }
 
+      // Agregar product_id si existe y es válido
+      if (product_id && product_id !== null) {
+        saleData.product_id = product_id;
+      }
+
       const { data: sale, error: saleError } = await supabase
         .from("sales")
         .insert(saleData)
@@ -115,6 +121,15 @@ export async function POST(request: Request) {
               { 
                 error: "Invalid client ID", 
                 details: "The specified client does not exist. Please check the client ID or create the client first."
+              },
+              { status: 400 }
+            );
+          }
+          if (saleError.message.includes("product")) {
+            return NextResponse.json(
+              { 
+                error: "Invalid product ID", 
+                details: "The specified product does not exist. Please check the product ID or create the product first."
               },
               { status: 400 }
             );
