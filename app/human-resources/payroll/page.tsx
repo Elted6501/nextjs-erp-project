@@ -49,13 +49,13 @@ const columns = [
   { key: 'deductions', label: 'Deductions', type: 'text' },
   { key: 'payPeriod', label: 'Pay Period', type: 'text' },
   { key: 'paymentDate', label: 'Payment Date', type: 'text' },
-  { key: 'actions', label: 'Actions', type: 'action' },
 ];
 
 export default function PayrollPage() {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [payroll] = useState(dummyPayroll);
   const [dateRange, setDateRange] = useState<{ from: string; to: string }>({ from: '', to: '' });
+
 
   interface PayrollItem {
     id: string;
@@ -87,6 +87,7 @@ export default function PayrollPage() {
       />
     </div>
   );
+
 
   // Adapt columns for DynamicTable
   const tableColumns = columns.map(col =>
@@ -120,6 +121,7 @@ export default function PayrollPage() {
             className="border rounded px-2 py-1"
             placeholder="To"
           />
+          <Button label="Clear Filters" onClick={() => alert('Llama a la funcion clear filters')} />
           <Button label="Generate Payroll" onClick={() => alert('Generate Payroll')} />
         </div>
       </div>

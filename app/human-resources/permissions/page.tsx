@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Button from '@/components/Button';
 import DynamicTable from '@/components/DynamicTable';
+import DynamicFormModal, {Field} from '@/components/DynamicFormModal';
 
 const dummyPermissions = [
   {
@@ -30,7 +31,6 @@ const columns = [
   { key: 'permissionName', label: 'Permission Name', type: 'text' },
   { key: 'description', label: 'Description', type: 'text' },
   { key: 'roles', label: 'Used By Roles', type: 'text' },
-  { key: 'actions', label: 'Actions', type: 'action' },
 ];
 
 interface Permission {
@@ -42,8 +42,25 @@ interface Permission {
 
 
 export default function PermissionsPage() {
-  const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [permissions] = useState(dummyPermissions);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [showModal, setShowModal] = useState(false);
+  const [fieldsData, setFieldsData] = useState<string[]>([]);
+  const [modalTitle, setModalTitle] = useState('');
+
+   const fields: Field[] = fieldsData.map((item) => ({
+    name: item.toLowerCase(),
+    label: item,
+    type: 'text',
+  }));
+
+  const handleOpenModal = (fieldArray: string[], title: string) => {
+    setFieldsData(fieldArray); // actualizas los campos a mostrar
+    setModalTitle(title);
+    setShowModal(true); // abres el modal
+  };
+
+  const addArray = ['Permission Name', 'Description', 'Role name',];
 
 
 
@@ -77,13 +94,20 @@ export default function PermissionsPage() {
     <div className="min-h-screen bg-[#ecebeb] p-6 space-y-6">
       <div className="flex justify-between items-center mb-4 flex-wrap gap-4">
         <h1 className="text-2xl font-bold text-[#a01217]">Permissions</h1>
-        <Button label="Add Permission" onClick={() => alert('Add Permission')} />
+        <Button label="Add Permission" onClick={() => handleOpenModal(addArray,"Add Permission")} />
       </div>
 
       <DynamicTable
         data={permissions}
         columns={tableColumns}
         onSelectedRowsChange={setSelectedIds}
+      />
+      <DynamicFormModal
+        title={modalTitle}
+        isOpen={showModal}
+        onClose={() => setShowModal(false)}
+        fields={fields}
+        onSubmit={() => alert('info submitted')}
       />
 
       {selectedIds.length > 0 && (

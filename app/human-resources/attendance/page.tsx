@@ -20,7 +20,6 @@ const columns = [
   { key: 'clockOut', label: 'Clock Out', type: 'text' },
   { key: 'status', label: 'Status', type: 'text' },
   { key: 'notes', label: 'Notes', type: 'text' },
-  { key: 'actions', label: 'Actions', type: 'action' },
 ];
 
 type AttendanceRecord = {
@@ -47,6 +46,11 @@ export default function AttendancePage() {
   const [employeeOptions, setEmployeeOptions] = useState<EmployeeOption[]>([]);
   const [selectedEmployee, setSelectedEmployee] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState<string>('');
+
+  const clearFilters = () => {
+  setSelectedEmployee(null);
+  setSelectedDate('');
+  };
 
   useEffect(() => {
     const fetchAttendance = async () => {
@@ -149,9 +153,8 @@ export default function AttendancePage() {
             className="border rounded px-2 py-1"
             placeholder="Filter by date"
           />
-          <Button label="Import CSV" onClick={() => alert('Import CSV')} />
+          <Button label="Clear Filters" onClick={() => clearFilters()} />
           <Button label="Export CSV" onClick={() => alert('Export CSV')} />
-          <Button label="View Report" onClick={() => alert('View Attendance Report')} />
         </div>
       </div>
 

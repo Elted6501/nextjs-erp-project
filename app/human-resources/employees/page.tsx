@@ -47,8 +47,16 @@ export default function EmployeesPage() {
     setShowModal(true); // abres el modal
   };
 
-  const updateArray = ['Position', 'Department', 'Email', 'Phone', 'Password'];
-  const addArray = ['Name', 'Lastname', 'Position', 'Department', 'Email', 'Phone', 'Password'];
+  const handleDelete = () => {
+    alert(`Delete users: ${selectedIds.join(', ')}`);
+    const updatedEmployees = employees.filter(emp => !selectedIds.includes(emp.id));
+    setEmployees(updatedEmployees);
+    setSelectedIds([]);
+
+  }
+
+  const updateArray = ['Email', 'Phone Number', 'Address', 'Schedule Start','Schedule End', 'Password'];
+  const addArray = ['First Name', 'Lastname', 'Email', 'Phone Number', 'Address', 'Birth Date', 'Hire Date','Password','Schedule Start', 'Schedule End'];
 
   useEffect(() => {
     fetch('/api/human-resources/employees')
@@ -76,7 +84,7 @@ export default function EmployeesPage() {
       <div className="flex justify-between items-center mb-4 flex-wrap gap-4">
         <h1 className="text-2xl font-bold text-[#a01217]">Employees</h1>
         <div className="flex gap-2 items-center">
-          {showModal && (
+          {showModal && ( 
             <DynamicFormModal
               title={modalTitle}
               isOpen={showModal}
@@ -101,6 +109,7 @@ export default function EmployeesPage() {
             ]}
             placeholder="Filter by Status"
           />
+          <Button label="Clear Filters" onClick={() => alert('Llama a la funcion clear filters')} />
           <Button label="Add Employee" onClick={() => handleOpenModal(addArray, 'Add Employee')} />
         </div>
       </div>
@@ -116,7 +125,7 @@ export default function EmployeesPage() {
           <Button
             label={`Delete (${selectedIds.length})`}
             className="bg-black hover:opacity-80 text-white mx-2"
-            onClick={() => alert(`Delete users: ${selectedIds.join(', ')}`)}
+            onClick={() => handleDelete}
           />
           <Button
             label={`Update (${selectedIds.length})`}
