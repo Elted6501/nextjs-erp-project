@@ -1,6 +1,7 @@
 'use client';
 import Link from 'next/link';
 import { useState } from 'react';
+import { usePermissions } from '@/app/hooks/usePermissions';
 import {
   FiBox,
   FiDollarSign,
@@ -23,37 +24,63 @@ import styles from '../styles/Sidebar.module.css';
 export default function Sidebar() {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [openModule, setOpenModule] = useState<string | null>(null);
+  const { hasPermission, isLoading } = usePermissions();
 
   const toggleSidebar = () => setIsCollapsed(!isCollapsed);
   const toggleSubmenu = (name: string) => {
     setOpenModule(openModule === name ? null : name);
   };
 
-  const modules = [
-    { name: 'Home', icon: <BsHouse />, href: '/' },
-    { name: 'Inventory', icon: <FiBox />, href: '/inventory' },
-    { name: 'Finance',
-      icon: <FiDollarSign />, 
+  const allModules = [
+    { name: 'Home', icon: <BsHouse />, href: '/', permission: 'system.view' },
+    { name: 'Inventory', icon: <FiBox />, href: '/inventory', permission: 'inventory.view' },
+    {
+      name: 'Finance',
+      icon: <FiDollarSign />,
+      permission: 'finance.view',
       submodules: [
-        { name: 'Orders', href: '/finance/orders', icon: <FaClipboardCheck /> },
-        { name: 'Invoices', href: '/finance/invoices', icon: <FaFileInvoiceDollar /> },
-        { name: 'Pending to pay', href: '/finance/pending-to-pay', icon: <FaHandHoldingUsd /> },
+        { name: 'Orders', href: '/finance/orders', icon: <FaClipboardCheck />, permission: 'finance.view' },
+        { name: 'Invoices', href: '/finance/invoices', icon: <FaFileInvoiceDollar />, permission: 'finance.view' },
+        { name: 'Pending to pay', href: '/finance/pending-to-pay', icon: <FaHandHoldingUsd />, permission: 'finance.view' },
       ],
     },
-    { name: 'Sales', icon: <FiShoppingCart />, href: '/sales' },
+    { name: 'Sales', icon: <FiShoppingCart />, href: '/sales', permission: 'sales.view' },
     {
       name: 'Human Resources',
       icon: <FiUsers />,
+      permission: 'hr.view',
       submodules: [
-        { name: 'Employees', href: '/human-resources/employees', icon: <FiUser /> },
-        { name: 'Roles', href: '/human-resources/roles', icon: <FiUserCheck /> },
-        { name: 'Permissions', href: '/human-resources/permissions', icon: <FiKey /> },
-        { name: 'Attendance', href: '/human-resources/attendance', icon: <FiClock /> },
-        { name: 'Payroll', href: '/human-resources/payroll', icon: <FiFileText /> },
+        { name: 'Employees', href: '/human-resources/employees', icon: <FiUser />, permission: 'hr.view' },
+        { name: 'Roles', href: '/human-resources/roles', icon: <FiUserCheck />, permission: 'hr.manage' },
+        { name: 'Permissions', href: '/human-resources/permissions', icon: <FiKey />, permission: 'system.admin' },
+        { name: 'Attendance', href: '/human-resources/attendance', icon: <FiClock />, permission: 'hr.view' },
+        { name: 'Payroll', href: '/human-resources/payroll', icon: <FiFileText />, permission: 'hr.manage' },
       ],
     },
-    { name: 'Maintenance', icon: <FiTool />, href: '/maintenance' },
+    { name: 'Maintenance', icon: <FiTool />, href: '/maintenance', permission: 'maintenance.view' },
   ];
+
+  if (isLoading) {
+    return (
+       <aside className={`${styles.sidebar} ${isCollapsed ? styles.collapsed : ''}`}>
+           <div className="flex justify-center items-center h-full">
+               <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-white" />
+           </div>
+       </aside>
+    );
+  }
+
+  const modules = allModules.filter(mod => hasPermission(mod.permission) || mod.name === 'Home' || hasPermission('system.admin'))
+   .map(mod => {
+       if (mod.submodules) {
+           return {
+               ...mod,
+               submodules: mod.submodules.filter(sub => hasPermission(sub.permission) || hasPermission('system.admin'))
+           };
+       }
+       return mod;
+   })
+   .filter(mod => !mod.submodules || mod.submodules.length > 0);
 
   return (
     <aside

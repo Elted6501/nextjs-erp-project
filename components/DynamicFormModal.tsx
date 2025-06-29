@@ -10,13 +10,14 @@ interface DynamicFormModalProps {
   onClose: () => void;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   onSubmit: (data: Record<string, any>) => void;
+  initialData?: Record<string, any> | null;
 }
 
 export type Field = {
   name: string;
   label: string;
-  type: 'text' | 'number' | 'select' | 'switch';
-  options?: { label: string; value: string }[];
+  type: 'text' | 'number' | 'select' | 'switch' | 'date' | 'time'; // <--- agrega 'date' y 'time'
+  options?: { label: string; value: string }[]; // solo para select
 };
 
 export default function DynamicFormModal({
@@ -25,10 +26,16 @@ export default function DynamicFormModal({
   isOpen,
   onClose,
   onSubmit,
+  initialData,
 }: DynamicFormModalProps) {
   const modalRef = useRef<HTMLDivElement>(null);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [formData, setFormData] = useState<Record<string, any>>({});
+
+  useEffect(() => {
+    if (isOpen) {
+      setFormData(initialData || {});
+    }
+  }, [isOpen, initialData]);
 
   // Bloquear scroll
   useEffect(() => {

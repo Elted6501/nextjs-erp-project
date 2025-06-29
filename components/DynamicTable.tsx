@@ -80,18 +80,6 @@ export default function DynamicTable({
   const startIndex = (currentPage - 1) * rowsPerPage;
   const paginatedData = data.slice(startIndex, startIndex + rowsPerPage);
 
-  useEffect(() => {
-  setData(initialData);
-}, [initialData]);
-
-  useEffect(() => {
-  setData(initialData);
-}, [initialData]);
-
-useEffect(() => {
-  console.log("el estado es: "+isActive);
-},[isActive]);
-  
   const toggleRow = (rowId: string) => {
     const updated = selectedRows.includes(rowId)
       ? selectedRows.filter((id) => id !== rowId)
@@ -102,24 +90,32 @@ useEffect(() => {
   };
 
   const toggleActive = (rowId: string) => {
-  const newData = data.map((row) => {
-    if (row.id === rowId) {
-      const newActive = !row.active;
-      setIsActive(newActive);
-      return { ...row, active: newActive };
+    const newData = data.map((row) => {
+      if (row.id === rowId) {
+        const newActive = !row.active;
+        setIsActive(newActive);
+        return { ...row, active: newActive };
+      }
+      return row;
+    });
+
+    setData(newData);
+    if (onDataChange) onDataChange(newData);
+
+    const changedRow = newData.find((row) => row.id === rowId);
+    if (onActiveChange && changedRow) {
+      onActiveChange([{ id: rowId, active: changedRow.active as boolean }]);
     }
-    return row;
-  });
+  };
 
-  setData(newData);
-  if (onDataChange) onDataChange(newData);
-
-  const changedRow = newData.find((row) => row.id === rowId);
-  if (onActiveChange && changedRow) {
-    onActiveChange([{ id: rowId, active: changedRow.active as boolean }]);
-  }
-};
-
+  useEffect(() => {
+    const validIds = data.map((row) => row.id);
+    const filtered = selectedRows.filter((id) => validIds.includes(id));
+    if (filtered.length !== selectedRows.length) {
+      setSelectedRows(filtered);
+      if (onSelectedRowsChange) onSelectedRowsChange(filtered);
+    }
+  }, [data]);
 
   if (!data || data.length === 0) {
     return (
@@ -202,7 +198,7 @@ useEffect(() => {
                         </button>
                         <button
                           onClick={() =>
-                            actionHandlers?.onAccept?.(row.id) 
+                            actionHandlers?.onAccept?.(row.id)
                           }
                           className="p-2 text-[#a01217] bg-[#a0121722] rounded-full hover:bg-[#a0121744]"
                         >
@@ -210,7 +206,7 @@ useEffect(() => {
                         </button>
                         <button
                           onClick={() =>
-                            actionHandlers?.onCancel?.(row.id) 
+                            actionHandlers?.onCancel?.(row.id)
                           }
                           className="p-2 text-[#a01217] bg-[#a0121722] rounded-full hover:bg-[#a0121744]"
                         >
@@ -228,29 +224,28 @@ useEffect(() => {
         </tbody>
       </table>
 
-{/* Pagination controls */}
-<div className="flex items-center justify-center mt-4 gap-4">
-  <button
-    onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-    disabled={currentPage === 1}
-    className={`px-4 py-2 rounded bg-[#a01217] text-white hover:bg-[#7f0e12] disabled:bg-gray-300`}
-  >
-    ‹
-  </button>
+      {/* Pagination controls */}
+      <div className="flex items-center justify-center mt-4 gap-4">
+        <button
+          onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+          disabled={currentPage === 1}
+          className={`px-4 py-2 rounded bg-[#a01217] text-white hover:bg-[#7f0e12] disabled:bg-gray-300`}
+        >
+          ‹
+        </button>
 
-  <span className="text-black">
-    Page {currentPage} of {totalPages}
-  </span>
+        <span className="text-black">
+          Page {currentPage} of {totalPages}
+        </span>
 
-  <button
-    onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
-    disabled={currentPage === totalPages}
-    className={`px-4 py-2 rounded bg-[#a01217] text-white hover:bg-[#7f0e12] disabled:bg-gray-300`}
-  >
-    ›
-  </button>
-</div>
-
+        <button
+          onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+          disabled={currentPage === totalPages}
+          className={`px-4 py-2 rounded bg-[#a01217] text-white hover:bg-[#7f0e12] disabled:bg-gray-300`}
+        >
+          ›
+        </button>
+      </div>
     </div>
   );
 }

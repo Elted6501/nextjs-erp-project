@@ -9,3 +9,60 @@ export async function GET() {
   }
   return NextResponse.json(data ?? []);
 }
+
+export async function POST(request: Request) {
+  const supabase = await createClient();
+  const body = await request.json();
+
+  const { data, error } = await supabase
+    .from("employees")
+    .insert(body)
+    .select()
+    .single();
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  return NextResponse.json(data, { status: 201 });
+}
+
+export async function DELETE(request: Request) {
+  const supabase = await createClient();
+  const { ids } = await request.json();
+
+  if (!Array.isArray(ids) || ids.length === 0) {
+    return NextResponse.json({ error: "No IDs provided" }, { status: 400 });
+  }
+
+  const { error } = await supabase.from("employees").delete().in("employee_id", ids);
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  return NextResponse.json({ success: true });
+}
+
+export async function PUT(request: Request) {
+    const supabase = await createClient();
+    const { updates } = await request.json();
+
+    if (!Array.isArray(updates) || updates.length === 0) {
+        return NextResponse.json({ error: "No updates provided" }, { status: 400 });
+    }
+
+    const updatePromises = updates.map(u =>
+        supabase.from('employees').update({ active: u.active }).eq('employee_id', u.id)
+    );
+
+    const results = await Promise.all(updatePromises);
+
+    const errors = results.filter(res => res.error);
+
+    if (errors.length > 0) {
+        return NextResponse.json({ error: errors.map(e => e.error!.message).join(', ') }, { status: 500 });
+    }
+
+    return NextResponse.json({ success: true });
+}

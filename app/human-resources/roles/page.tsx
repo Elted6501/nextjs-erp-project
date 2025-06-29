@@ -4,12 +4,13 @@ import { useState, useEffect } from 'react';
 import Button from '@/components/Button';
 import DynamicTable from '@/components/DynamicTable';
 import DynamicFormModal, { Field } from '@/components/DynamicFormModal';
+import AlertDialog from '@/components/AlertDialog';
+import { PermissionsGate } from '@/app/components/PermissionsGate';
 
 interface Role {
   role_id: string;
   role_name: string;
   description: string;
-  // permissions?: string; // Si la agregas después en la base de datos
 }
 
 const columnConfig = [
@@ -24,7 +25,9 @@ export default function RolesPage() {
   const [showModal, setShowModal] = useState(false);
   const [fieldsData, setFieldsData] = useState<string[]>([]);
   const [modalTitle, setModalTitle] = useState('');
-
+  const [editingRole, setEditingRole] = useState<Role | null>(null);
+  const [showAlert, setShowAlert] = useState(false);
+  const [alertIds, setAlertIds] = useState<string[]>([]);
 
   const fields: Field[] = fieldsData.map((item) => ({
     name: item.toLowerCase(),
@@ -32,23 +35,12 @@ export default function RolesPage() {
     type: 'text',
   }));
 
-  const handleOpenModal = (fieldArray: string[], title: string) => {
-    setFieldsData(fieldArray); // actualizas los campos a mostrar
-    setModalTitle(title);
-    setShowModal(true); // abres el modal
-  };
-
   const addArray = ['Role name', 'Description'];
-
-  
-
-
 
   useEffect(() => {
     fetch('/api/human-resources/roles')
       .then(res => res.json())
       .then(data => {
-        console.log("Roles recibidos:", data);
         setRoles(data);
       });
   }, []);
@@ -57,16 +49,86 @@ export default function RolesPage() {
     setSelectedIds(ids);
   };
 
+  // Abrir modal para agregar o editar
+  const handleOpenModal = (fieldArray: string[], title: string, role?: Role) => {
+    setFieldsData(fieldArray);
+    setModalTitle(title);
+    setShowModal(true);
+    setEditingRole(role || null);
+
+  };
+
+  // Agregar o actualizar rol
+  const handleAddOrUpdateRole = async (formData: { [key: string]: any }) => {
+    const { 'role name': role_name, description } = formData;
+
+    if (editingRole) {
+      // UPDATE
+      const res = await fetch(`/api/human-resources/roles/${editingRole.role_id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ role_name, description }),
+      });
+      if (!res.ok) {
+        alert('Error updating role');
+        return;
+      }
+      const updatedRole = await res.json();
+      setRoles(prev =>
+        prev.map(role =>
+          role.role_id === editingRole.role_id
+            ? updatedRole
+            : role
+        )
+      );
+      setEditingRole(null);
+    } else {
+      // ADD
+      const res = await fetch('/api/human-resources/roles', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ role_name, description }),
+      });
+      if (!res.ok) {
+        alert('Error adding role');
+        return;
+      }
+      const result = await res.json();
+      const newRole = result.data ? result.data : result;
+      setRoles(prev => [...prev, newRole]);
+    }
+    setShowModal(false);
+  };
+
+  // Eliminar uno o varios roles
+  const handleDelete = async (ids: string[]) => {
+    const res = await fetch('/api/human-resources/roles', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ids }),
+    });
+    if (!res.ok) {
+      alert('Error deleting roles');
+      return;
+    }
+    setRoles(prev => prev.filter(role => !ids.includes(role.role_id)));
+    setSelectedIds([]); // <--- Esto limpia la selección después de borrar
+  };
+
+  // Renderiza acciones por fila
   const renderActions = (row: Role) => (
     <div className="flex gap-2">
       <Button
         label="Edit"
-        onClick={() => alert(`Edit role: ${row.role_name}`)}
+        onClick={() => handleOpenModal(addArray, 'Update Role', row)}
         className="bg-yellow-500 text-white px-2 py-1 rounded"
       />
       <Button
         label="Delete"
-        onClick={() => alert(`Delete role: ${row.role_name}`)}
+        onClick={() => {
+          setAlertIds([row.role_id]);
+          setShowAlert(true);
+        }}
         className="bg-red-600 text-white px-2 py-1 rounded"
       />
     </div>
@@ -79,6 +141,7 @@ export default function RolesPage() {
   );
 
   return (
+   <PermissionsGate requiredPermission="hr.manage">
     <div className="min-h-screen bg-[#ecebeb] p-6 space-y-6">
       <div className="flex justify-between items-center mb-4">
         <h1 className="text-2xl font-bold text-[#a01217]">Roles</h1>
@@ -93,20 +156,62 @@ export default function RolesPage() {
       <DynamicFormModal
         title={modalTitle}
         isOpen={showModal}
-        onClose={() => setShowModal(false)}
+        onClose={() => {
+          setShowModal(false);
+          setEditingRole(null);
+        }}
         fields={fields}
-        onSubmit={() => alert('info submitted')}
+        onSubmit={handleAddOrUpdateRole}
+        initialData={editingRole ? { 'role name': editingRole.role_name, description: editingRole.description } : null}
       />
+
+      {showAlert && (
+        <AlertDialog
+          title="Confirmar eliminación"
+          content={
+            (alertIds.length === 1
+              ? '¿Estás seguro de eliminar este rol?'
+              : `¿Estás seguro de eliminar estos ${alertIds.length} roles?`)
+          }
+          onCancel={() => {
+            setShowAlert(false);
+            setAlertIds([]);
+          }}
+          onSuccess={async () => {
+            setShowAlert(false);
+            await handleDelete(alertIds.length > 0 ? alertIds : selectedIds);
+            setAlertIds([]);
+          }}
+          onSuccessLabel="Eliminar"
+          onCancelLabel="Cancelar"
+        />
+      )}
 
       {selectedIds.length > 0 && (
         <div className="flex justify-end">
           <Button
             label={`Delete (${selectedIds.length})`}
             className="bg-black hover:opacity-80 text-white"
-            onClick={() => alert(`Delete roles: ${selectedIds.join(', ')}`)}
+            onClick={() => {
+              setAlertIds(selectedIds);
+              setShowAlert(true);
+            }}
+          />
+          <Button
+            label={`Update (${selectedIds.length})`}
+            className="bg-black hover:opacity-80 text-white mx-2"
+            onClick={() => {
+              if (selectedIds.length === 1) {
+                const role = roles.find(r => r.role_id === selectedIds[0]);
+                if (role) handleOpenModal(addArray, 'Update Role', role);
+              } else {
+                alert('Selecciona solo un rol para actualizar.');
+              }
+            }}
           />
         </div>
       )}
     </div>
+   </PermissionsGate>
   );
 }
