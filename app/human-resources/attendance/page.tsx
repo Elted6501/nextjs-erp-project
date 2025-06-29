@@ -5,6 +5,7 @@ import Button from '@/components/Button';
 import Dropdown from '@/components/Dropdown';
 import DynamicTable from '@/components/DynamicTable';
 import { createClient } from '@supabase/supabase-js';
+import DynamicFormModal, {Field} from '@/components/DynamicFormModal';
 
 // Configura tu cliente de Supabase
 const supabase = createClient(
@@ -47,6 +48,25 @@ export default function AttendancePage() {
   const [selectedEmployee, setSelectedEmployee] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState<string>('');
 
+
+  const [showModal, setShowModal] = useState(false);
+  const [fieldsData, setFieldsData] = useState<string[]>([]);
+  const [modalTitle, setModalTitle] = useState('');
+  
+  const fields: Field[] = fieldsData.map((item) => ({
+    name: item.toLowerCase(),
+    label: item,
+    type: 'text',
+  }));
+
+  const addArray = ['Notes'];
+  
+  const handleOpenModal = (fieldArray: string[], title: string) => {
+    setFieldsData(fieldArray); // actualizas los campos a mostrar
+    setModalTitle(title);
+    setShowModal(true); // abres el modal
+  };
+
   const clearFilters = () => {
   setSelectedEmployee(null);
   setSelectedDate('');
@@ -75,18 +95,24 @@ export default function AttendancePage() {
         setAttendance([]);
         setEmployeeOptions([]);
       } else if (Array.isArray(data)) {
-        const attendanceData = data.map((item) => ({
-          id: String(item.attendance_id),
-          date: item.date,
-          employeeName: item.employees
-            ? `${item.employees.first_name} ${item.employees.last_name}`
-            : item.employee_id,
-          clockIn: item.clock_in || '',
-          clockOut: item.clock_out || '',
-          status: item.status || '',
-          notes: item.notes || '',
-          employeeId: item.employee_id,
-        }));
+        const attendanceData = data.map((item) => {
+          const employee = Array.isArray(item.employees) ? item.employees[0] : item.employees;
+
+          return {
+            id: String(item.attendance_id),
+            date: item.date,
+            employeeName: employee
+              ? `${employee.first_name} ${employee.last_name}`
+              : item.employee_id,
+            clockIn: item.clock_in || '',
+            clockOut: item.clock_out || '',
+            status: item.status || '',
+            notes: item.notes || '',
+            employeeId: item.employee_id,
+            first_name: employee?.first_name || '',
+            last_name: employee?.last_name || '',
+          };
+        });
 
         setAttendance(attendanceData);
 
@@ -123,7 +149,7 @@ export default function AttendancePage() {
       />
       <Button
         label="Edit"
-        onClick={() => alert(`Edit attendance for: ${row.employeeName}`)}
+        //onClick={() => alert(`Edit attendance for: ${row.employeeName}`)}
         className="bg-yellow-500 text-white px-2 py-1 rounded"
       />
     </div>
@@ -145,6 +171,13 @@ export default function AttendancePage() {
             options={employeeOptions}
             placeholder="Filter by employee"
             onSelect={val => setSelectedEmployee(val)}
+          />
+          <DynamicFormModal
+            title={modalTitle}
+            isOpen={showModal}
+            onClose={() => setShowModal(false)}
+            fields={fields}
+            onSubmit={() => alert('info submitted')}
           />
           <input
             type="date"
@@ -169,7 +202,7 @@ export default function AttendancePage() {
           <Button
             label={`Edit Attendance (${selectedIds.length})`}
             className="bg-yellow-500 text-white"
-            onClick={() => alert(`Edit attendance for: ${selectedIds.join(', ')}`)}
+            onClick={() => handleOpenModal(addArray, 'Note')}
           />
         </div>
       )}
