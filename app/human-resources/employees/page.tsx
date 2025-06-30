@@ -8,6 +8,7 @@ import DynamicTable from '@/components/DynamicTable';
 import DynamicFormModal, { Field } from '@/components/DynamicFormModal';
 import AlertDialog from '@/components/AlertDialog';
 import { PermissionsGate } from '@/app/components/PermissionsGate';
+import { FaSearch } from "react-icons/fa";
 
 interface Employee {
   id: string;
@@ -19,6 +20,8 @@ interface Employee {
   scheduleStart: string;
   scheduleEnd: string;
   active: boolean;
+  roleId?: string;
+  roleName?: string;
   [key: string]: undefined | string | boolean;
 }
 
@@ -33,10 +36,17 @@ interface RawEmployee {
   employee_schedule_start: string;
   employee_schedule_end: string;
   active?: boolean;
+  role_id?: string;
+  role_name?: string;
 }
 
 interface EmployeeFormData {
   [key: string]: string | boolean | undefined;
+}
+
+interface RoleOption {
+  label: string;
+  value: string;
 }
 
 export default function EmployeesPage() {
@@ -48,7 +58,10 @@ export default function EmployeesPage() {
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
   const [showAlert, setShowAlert] = useState(false);
+  const [roles, setRoles] = useState<RoleOption[]>([]);
+  const [searchText, setSearchText] = useState(''); // NUEVO
 
+  // Define los campos del formulario dinámicamente
   const fields: Field[] = fieldsData.map((item) => {
     const lower = item.toLowerCase();
     if (lower === 'birth date' || lower === 'hire date') {
@@ -57,17 +70,21 @@ export default function EmployeesPage() {
     if (lower === 'schedule start' || lower === 'schedule end') {
       return { name: lower, label: item, type: 'time' };
     }
+    if (lower === 'role') {
+      return { name: 'role', label: 'Role', type: 'select', options: roles };
+    }
     return { name: lower, label: item, type: 'text' };
   });
 
   const updateArray = [
-    'Email', 'Phone Number', 'Address', 'Schedule Start', 'Schedule End', 'Password'
+    'Email', 'Phone Number', 'Address', 'Schedule Start', 'Schedule End', 'Password', 'Role'
   ];
   const addArray = [
-    'First Name', 'Lastname', 'Email', 'Phone Number', 'Address', 'Birth Date', 'Hire Date', 'Password', 'Schedule Start', 'Schedule End'
+    'First Name', 'Lastname', 'Email', 'Phone Number', 'Address', 'Birth Date', 'Hire Date', 'Password', 'Schedule Start', 'Schedule End', 'Role'
   ];
 
   useEffect(() => {
+    // Fetch empleados
     fetch('/api/human-resources/employees')
       .then((res) => res.json())
       .then((data: RawEmployee[]) => {
@@ -81,8 +98,17 @@ export default function EmployeesPage() {
           scheduleStart: emp.employee_schedule_start,
           scheduleEnd: emp.employee_schedule_end,
           active: !!emp.active,
+          roleId: emp.role_id,
+          roleName: emp.role_name,
         }));
         setEmployees(mapped);
+      });
+
+    // Fetch roles
+    fetch('/api/human-resources/roles')
+      .then(res => res.json())
+      .then((data: { role_id: string; role_name: string }[]) => {
+        setRoles(data.map(r => ({ label: r.role_name, value: r.role_id })));
       });
   }, []);
 
@@ -105,6 +131,7 @@ export default function EmployeesPage() {
       password,
       'schedule start': employee_schedule_start,
       'schedule end': employee_schedule_end,
+      role,
     } = formData;
 
     if (editingEmployee) {
@@ -118,6 +145,7 @@ export default function EmployeesPage() {
           employee_schedule_start,
           employee_schedule_end,
           password,
+          role_id: role,
         }),
       });
 
@@ -137,6 +165,8 @@ export default function EmployeesPage() {
                 phoneNumber: updatedEmployee.phone_number,
                 scheduleStart: updatedEmployee.employee_schedule_start,
                 scheduleEnd: updatedEmployee.employee_schedule_end,
+                roleId: updatedEmployee.role_id,
+                roleName: updatedEmployee.role_name,
               }
             : emp
         )
@@ -158,6 +188,7 @@ export default function EmployeesPage() {
           employee_schedule_start,
           employee_schedule_end,
           active: true,
+          role_id: role,
         }),
       });
 
@@ -179,6 +210,8 @@ export default function EmployeesPage() {
           scheduleStart: newEmployee.employee_schedule_start,
           scheduleEnd: newEmployee.employee_schedule_end,
           active: !!newEmployee.active,
+          roleId: newEmployee.role_id,
+          roleName: newEmployee.role_name,
         },
       ]);
     }
@@ -228,11 +261,22 @@ export default function EmployeesPage() {
     );
   };
 
+  // FILTRO: status + búsqueda
   const filteredEmployees = employees.filter(emp => {
-    if (selectedStatus === 'all') return true;
-    if (selectedStatus === 'active') return emp.active;
-    if (selectedStatus === 'inactive') return !emp.active;
-    return true;
+    // Filtro por status
+    const statusOk =
+      selectedStatus === 'all' ||
+      (selectedStatus === 'active' && emp.active) ||
+      (selectedStatus === 'inactive' && !emp.active);
+
+    // Filtro por texto de búsqueda
+    const searchOk =
+      searchText.trim() === '' ||
+      emp.fullName?.toLowerCase().includes(searchText.toLowerCase()) ||
+      emp.email?.toLowerCase().includes(searchText.toLowerCase()) ||
+      emp.phoneNumber?.toLowerCase().includes(searchText.toLowerCase());
+
+    return statusOk && searchOk;
   });
 
   const columnConfig = [
@@ -244,6 +288,7 @@ export default function EmployeesPage() {
     { key: 'hireDate', label: 'Hire Date', type: 'text' },
     { key: 'scheduleStart', label: 'Schedule Start', type: 'text' },
     { key: 'scheduleEnd', label: 'Schedule End', type: 'text' },
+    { key: 'roleName', label: 'Role', type: 'text' },
     { key: 'active', label: 'Status', type: 'switch' },
   ];
 
@@ -253,19 +298,17 @@ export default function EmployeesPage() {
         <div className="flex justify-between items-center mb-4 flex-wrap gap-4">
           <h1 className="text-2xl font-bold text-[#a01217]">Employees</h1>
           <div className="flex gap-2 items-center">
-            {showModal && (
-              <DynamicFormModal
-                title={modalTitle}
-                isOpen={showModal}
-                onClose={() => {
-                  setShowModal(false);
-                  setEditingEmployee(null);
-                }}
-                fields={fields}
-                onSubmit={handleAddOrUpdateEmployee}
-                initialData={editingEmployee}
+            {/* Searchbar */}
+            <div className="flex items-center gap-2">
+              <FaSearch className="w-4 h-4 text-[#a01217]" />
+              <input
+                type="text"
+                placeholder="Search by name, email or phone"
+                className="border border-gray-300 rounded px-2 py-1 w-64"
+                value={searchText}
+                onChange={e => setSearchText(e.target.value)}
               />
-            )}
+            </div>
             <Dropdown
               options={[
                 { label: 'Filter by status', value: 'all' },
@@ -278,11 +321,29 @@ export default function EmployeesPage() {
             />
             <Button
               label="Clear Filters"
-              onClick={() => setSelectedStatus('all')}
+              onClick={() => {
+                setSelectedStatus('all');
+                setSearchText('');
+              }}
             />
             <Button label="Add Employee" onClick={() => handleOpenModal(addArray, 'Add Employee')} />
           </div>
         </div>
+
+        {/* Modal fuera del bloque de filtros */}
+        {showModal && (
+          <DynamicFormModal
+            title={modalTitle}
+            isOpen={showModal}
+            onClose={() => {
+              setShowModal(false);
+              setEditingEmployee(null);
+            }}
+            fields={fields}
+            onSubmit={handleAddOrUpdateEmployee}
+            initialData={editingEmployee}
+          />
+        )}
 
         <DynamicTable
           data={filteredEmployees}

@@ -3,11 +3,29 @@ import { createClient } from "@/lib/supabase/server";
 
 export async function GET() {
   const supabase = await createClient();
-  const { data, error } = await supabase.from("employees").select("*");
+  // Trae todos los empleados y el nombre del rol asociado
+  const { data, error } = await supabase
+    .from("employees")
+    .select(`
+      *,
+      roles:role_id (
+        role_id,
+        role_name
+      )
+    `);
+
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
-  return NextResponse.json(data ?? []);
+
+  // Aplana el role_name al nivel del empleado
+  const mapped = (data ?? []).map((emp: any) => ({
+    ...emp,
+    role_name: emp.roles?.role_name ?? null,
+    role_id: emp.role_id ?? emp.roles?.role_id ?? null,
+  }));
+
+  return NextResponse.json(mapped);
 }
 
 export async function POST(request: Request) {
@@ -45,24 +63,24 @@ export async function DELETE(request: Request) {
 }
 
 export async function PUT(request: Request) {
-    const supabase = await createClient();
-    const { updates } = await request.json();
+  const supabase = await createClient();
+  const { updates } = await request.json();
 
-    if (!Array.isArray(updates) || updates.length === 0) {
-        return NextResponse.json({ error: "No updates provided" }, { status: 400 });
-    }
+  if (!Array.isArray(updates) || updates.length === 0) {
+    return NextResponse.json({ error: "No updates provided" }, { status: 400 });
+  }
 
-    const updatePromises = updates.map(u =>
-        supabase.from('employees').update({ active: u.active }).eq('employee_id', u.id)
-    );
+  const updatePromises = updates.map(u =>
+    supabase.from('employees').update({ active: u.active }).eq('employee_id', u.id)
+  );
 
-    const results = await Promise.all(updatePromises);
+  const results = await Promise.all(updatePromises);
 
-    const errors = results.filter(res => res.error);
+  const errors = results.filter(res => res.error);
 
-    if (errors.length > 0) {
-        return NextResponse.json({ error: errors.map(e => e.error!.message).join(', ') }, { status: 500 });
-    }
+  if (errors.length > 0) {
+    return NextResponse.json({ error: errors.map(e => e.error!.message).join(', ') }, { status: 500 });
+  }
 
-    return NextResponse.json({ success: true });
+  return NextResponse.json({ success: true });
 }
