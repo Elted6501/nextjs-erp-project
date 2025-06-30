@@ -43,7 +43,7 @@ export type ScheduleServicesType = {
     setStep: React.Dispatch<React.SetStateAction<number>>;
     setMechanic: React.Dispatch<React.SetStateAction<string>>;
     mechanic: string;
-    mechanics: any[];
+    mechanics: Mechanic[];
     total: number;
     selectedServices: string[];
     setSelectedServices: React.Dispatch<React.SetStateAction<string[]>>;
@@ -52,7 +52,7 @@ export type ScheduleServicesType = {
 export type MechanicsScheduleType = {
     setMechanic: React.Dispatch<React.SetStateAction<string>>;
     mechanic: string;
-    mechanics: any[];
+    mechanics: Mechanic[];
 };
 
 export type ServicesScheduleType = {
