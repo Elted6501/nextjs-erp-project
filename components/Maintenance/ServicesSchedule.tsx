@@ -1,10 +1,6 @@
 import { ServicesScheduleType } from '@/Types/Maintenance/schedule';
 
-const ServicesSchedule = ({
-  services,
-  setSelectedServices,
-  selectedServices,
-}: ServicesScheduleType) => {
+const ServicesSchedule = ({  services,  setSelectedServices,  selectedServices,}: ServicesScheduleType) => {
 
   const toggleService = (serviceName: string) => {
     setSelectedServices((prev) =>

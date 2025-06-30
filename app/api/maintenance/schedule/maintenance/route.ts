@@ -10,7 +10,7 @@ export async function POST(request: Request) {
 
         const { error } = await supabase.from('maintenance').insert({
             employee_id: res.employee_id,
-            status: res.status,
+            status: res.status ? res.status : 'Scheduled',
             notes: res.notes,
             mn_made: new Date().toISOString(),
             mn_completed: new Date().toISOString(),
@@ -21,9 +21,10 @@ export async function POST(request: Request) {
         if (error) {
             return NextResponse.json({ error }, { status: 500 })
         }
+        return NextResponse.json({ status: 500 });
     }
 
-    return NextResponse.json({ status: 200 });
+    return NextResponse.json({error:'There was a problem'},{ status: 500 });
 }
 
 export async function GET(req: Request) {

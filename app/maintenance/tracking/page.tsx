@@ -1,19 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import {
-  FaCalendarCheck,
-  FaCarSide,
-  FaCheckCircle,
-  FaTools,
-} from "react-icons/fa";
+import { FaCalendarCheck, FaCarSide, FaCheckCircle, FaTools, } from "react-icons/fa";
 
 export default function TrackingPage() {
   const [folioInput, setFolioInput] = useState("");
   const [folio, setFolio] = useState("");
-  const [status, setStatus] = useState<
-    "Scheduled" | "In Progress" | "Waiting for Pickup" | "Completed" | null
-  >(null);
+  const [status, setStatus] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
 
   const statusSteps = [
@@ -23,24 +16,53 @@ export default function TrackingPage() {
     { label: "Completed", icon: <FaCheckCircle className="text-xl" /> },
   ];
 
-  const currentIndex = status
-    ? statusSteps.findIndex((s) => s.label === status)
-    : -1;
+  const currentIndex = status ? statusSteps.findIndex((s) => s.label === status) : -1;
 
-  const progressWidth = ((currentIndex + 0.5) / (statusSteps.length - 1)) * 100;
-
-  // Simula consulta de status por folio
-  const handleCheckStatus = () => {
+  let progressWidth = ((currentIndex + 0.5) / (statusSteps.length - 1)) * 100;
+  progressWidth = progressWidth > 100 ? 100 : progressWidth;
+  
+  const handleCheckStatus = async () => {
     if (folioInput.trim() !== "") {
       setFolio(folioInput);
-      // Aquí puedes hacer fetch por folio y traer el status
-      // Por ahora, se simula con un estado por defecto
-      setStatus("Scheduled");
+      try {
+        const response = await fetch("../api/maintenance/tracking/maintenance?folio="+folioInput.toString());
+        const data = await response.json();
+
+        if (data.error) {
+          console.error(data.error);
+        } else {
+          setStatus(data.data[0].status);
+        }
+      } catch (e) {
+        console.error(e);
+      }
     }
   };
 
-  const handleSaveStatus = () => {
-    console.log("Nuevo status guardado:", status);
+  const handleSaveStatus = async () => {
+      if(status?.trim()){
+        console.log(status, folioInput);
+        
+        try {
+        const response = await fetch("../api/maintenance/tracking/maintenance", {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            status: status?.toString(),
+            folio: folioInput.toString()
+          })
+        });
+        const data = await response.json();
+
+        if (data.error) {
+          console.error(data.error);
+        }
+      } catch (e) {
+        console.error(e);
+      }
+      }
     setIsEditing(false);
   };
 
@@ -54,7 +76,6 @@ export default function TrackingPage() {
           Appointment Tracking
         </h1>
 
-        {/* Formulario para ingresar folio */}
         {!folio && (
           <div className="space-y-4">
             <label className="block text-gray-600 font-medium">
@@ -76,7 +97,6 @@ export default function TrackingPage() {
           </div>
         )}
 
-        {/* Mostrar tracking si ya hay folio */}
         {folio && status && (
           <div className="space-y-6">
             <h2 className="text-xl font-semibold text-center text-gray-700">
@@ -100,11 +120,10 @@ export default function TrackingPage() {
                     className="relative z-30 flex flex-col items-center w-1/4"
                   >
                     <div
-                      className={`w-14 h-14 flex items-center justify-center rounded-full border-4 mb-2 transition-colors duration-300 ${
-                        isActive
-                          ? "border-red-500 bg-red-600 text-white"
-                          : "border-gray-300 bg-gray-100 text-gray-500"
-                      }`}
+                      className={`w-14 h-14 flex items-center justify-center rounded-full border-4 mb-2 transition-colors duration-300 ${isActive
+                        ? "border-red-500 bg-red-600 text-white"
+                        : "border-gray-300 bg-gray-100 text-gray-500"
+                        }`}
                     >
                       {step.icon}
                     </div>
@@ -127,7 +146,6 @@ export default function TrackingPage() {
           </div>
         )}
 
-        {/* Formulario para actualizar status */}
         {isEditing && (
           <div className="space-y-6 pt-6 border-t border-gray-300">
             <h3 className="text-lg font-semibold text-center text-gray-700">
@@ -143,9 +161,9 @@ export default function TrackingPage() {
                 onChange={(e) => setStatus(e.target.value as typeof status)}
                 className="w-full bg-gray-100 border border-gray-300 p-3 rounded-lg"
               >
-                <option value="">-- Select Status --</option>
+                <option value=""  onClick={() => setStatus("")}>-- Select Status --</option>
                 {statusSteps.map((step) => (
-                  <option key={step.label} value={step.label}>
+                  <option key={step.label} onClick={() => setStatus(step.label)} value={step.label}>
                     {step.label}
                   </option>
                 ))}
