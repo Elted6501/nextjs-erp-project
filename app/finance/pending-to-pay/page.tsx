@@ -144,17 +144,21 @@ export default function PendingToPayPage() {
                 options={ORDER_STATUS_OPTIONS}
                 onSelect={handleStatusSelect}
                 placeholder={status === "" ? "Select status" : status}
+                className="mt-1"
               />
               <Dropdown
                 options={ORDER_STATUS_OPTIONS}
                 onSelect={handleStatusSelect}
                 placeholder={status === "" ? "Select status" : status}
+                className="mt-1"
               />
               <Dropdown
                 options={ORDER_STATUS_OPTIONS}
                 onSelect={handleStatusSelect}
                 placeholder={status === "" ? "Select status" : status}
-              />
+                className="mt-1"
+              />  
+              
 
               <DateInput
               label="Select Date:"
