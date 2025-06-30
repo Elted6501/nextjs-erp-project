@@ -1,7 +1,7 @@
 import React, { Dispatch, SetStateAction } from 'react';
 import Inputs from '@/components/Maintenance/Inputs';
 
-function Schedule({  client,  setClient,  setCar,  setStep,}: {
+function Schedule({  client,  setClient,  setCar,  setStep }: {
   client: string;
   setClient: (value: string) => void;
   setCar: Dispatch<SetStateAction<{
