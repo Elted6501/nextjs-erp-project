@@ -22,7 +22,6 @@
     "postcss": "^8.5.4",
     "react": "^19.0.0",
     "react-datepicker": "^8.4.0",
-    "react-datepicker": "^8.4.0",
     "react-dom": "^19.0.0",
     "react-icons": "^5.5.0",
     "tailwindcss": "^4.1.8"
