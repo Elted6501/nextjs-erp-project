@@ -9,6 +9,7 @@ export default function downloadFile(sheetName: string, columns: any[], content:
       content: content,
     },
   ];
+
   const settings = {
     fileName: sheetName,
   };
