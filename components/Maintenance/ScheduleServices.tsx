@@ -1,30 +1,9 @@
-import { Dispatch, SetStateAction } from "react";
 import MechanicsSchedule from "./MechanicsSchedule";
 import ScheduleServicesSelected from "./ScheduleServicesSelected";
 import ServicesSchedule from "./ServicesSchedule";
-import { Mechanic } from "@/Types/Maintenance/schedule";
+import {ScheduleServicesType } from "@/Types/Maintenance/schedule";
 
-type ScheduleServicesType = {
-  setStep: (step: number) => void;
-  mechanic: { employee_id: number, first_name: string, last_name: string };
-  setMechanic: (val: { employee_id: number, first_name: string, last_name: string }) => void;
-  total: number;
-  selectedServices: string[];
-  setSelectedServices: Dispatch<SetStateAction<string[]>>
-  mechanics: Mechanic[];
-  services: { name: string, service_price: number }[]
-};
-
-const ScheduleServices = ({
-  setStep,
-  mechanic,
-  setMechanic,
-  total,
-  selectedServices,
-  setSelectedServices,
-  mechanics,
-  services
-}: ScheduleServicesType) => {
+const ScheduleServices = ({setStep,  mechanic,  setMechanic,  total,  selectedServices,  setSelectedServices,  mechanics,  services}: ScheduleServicesType) => {
 
   return (
     <div className="space-y-6">

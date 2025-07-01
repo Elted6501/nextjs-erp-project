@@ -1,8 +1,8 @@
-import { ScheduleAppointmentType } from "@/Types/Maintenance/schedule";
+import { ScheduleDateOnlyType } from "@/Types/Maintenance/schedule";
 import Calendar from "./CalendarComponent";
 
 type DateOnlyProps = Pick<
-  ScheduleAppointmentType,
+  ScheduleDateOnlyType,
   "selectedDate" | "setSelectedDate"
 >;
 

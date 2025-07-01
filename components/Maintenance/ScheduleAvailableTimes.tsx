@@ -8,18 +8,11 @@ type ScheduleAvailableTimesType = {
   selectedDate: string
 };
 
-const ScheduleAvailableTimes = ({
-  selectedTime,
-  setSelectedTime,
-  mechanicSelected,
-  selectedDate
-}: ScheduleAvailableTimesType) => {
+const ScheduleAvailableTimes = ({selectedTime,  setSelectedTime,  mechanicSelected,  selectedDate}: ScheduleAvailableTimesType) => {
 
   const [hours, setHours] = useState<{ available_hour: string }[]>([])
 
   useEffect(() => {
-    console.log(mechanicSelected, selectedDate);
-
     if (mechanicSelected.employee_id != 0 && selectedDate) {
       (async () => {
         const response = await fetch(`../api/maintenance/schedule/maintenance?id=${mechanicSelected.employee_id}&date=${selectedDate}`);

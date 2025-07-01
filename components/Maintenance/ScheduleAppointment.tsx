@@ -1,49 +1,22 @@
 import { useState } from "react";
 import Calendar from "./CalendarComponent";
 import ScheduleAvailableTimes from "./ScheduleAvailableTimes";
-import { CarType, Mechanic } from "@/Types/Maintenance/schedule";
+import {  ScheduleAppointmentType } from "@/Types/Maintenance/schedule";
 
-type ScheduleAppointmentType = {
-  selectedDate?: string;
-  appointmentId: string;
-  setSelectedDate: (date: string) => void;
-  selectedTime: string;
-  setSelectedTime: (time: string) => void;
-  setStep: (step: number) => void;
-  Mechanic: Mechanic
-  car: CarType
-  selectedServices: string[];
-  assignedMechanic?: { employee_id: string | number, first_name: string, last_name: string } | null | undefined;
-  client: string;
-
-};
-
-const ScheduleAppointment = ({
-  selectedDate,
-  setSelectedDate,
-  selectedTime,
-  setSelectedTime,
-  setStep,
-  Mechanic,
-  car,
-  selectedServices,
-  client,
-  assignedMechanic,
-  appointmentId
-}: ScheduleAppointmentType) => {
+const ScheduleAppointment = (props: ScheduleAppointmentType) => {
   const [isActive, setIsActive] = useState<boolean>(false);
 
   const handleNext = async () => {
-    if (!selectedDate) {
+    if (!props.selectedDate) {
       alert("Please, select a date");
       return;
     }
-    if (!selectedTime) {
+    if (!props.selectedTime) {
       alert("Please, select an hour");
       return;
     }
 
-    if (!isActive && selectedDate && selectedTime) {
+    if (!isActive && props.selectedDate && props.selectedTime) {
       setIsActive(true);
       const response = await fetch("../api/maintenance/schedule/maintenance", {
         method: 'POST',
@@ -51,11 +24,11 @@ const ScheduleAppointment = ({
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          maintenance_folio: appointmentId,
-          employee_id: assignedMechanic?.employee_id,
+          maintenance_folio: props.appointmentId,
+          employee_id: props.assignedMechanic?.employee_id,
           status: 'Schedule',
-          notes: `${car.brand} - ${car.model} - ${car.year} - ${car.plates} of ${client}. ${selectedServices.join(',')}`,
-          mn_assigned: selectedDate + ' ' + selectedTime
+          notes: `${props.car.brand} - ${props.car.model} - ${props.car.year} - ${props.car.plates} of ${props.client}. ${props.selectedServices.join(',')}`,
+          mn_assigned: props.selectedDate + ' ' + props.selectedTime
         })
       });
 
@@ -66,20 +39,20 @@ const ScheduleAppointment = ({
       }
 
     }
-    setStep(4);
+    props.setStep(4);
   };
 
   return (
     <div>
       <div className="grid md:grid-cols-2 gap-6 mb-6">
-        <Calendar selected={selectedDate} onSelect={setSelectedDate} />
+        <Calendar selected={props.selectedDate} onSelect={props.setSelectedDate} />
         {
-          selectedDate ?
+          props.selectedDate ?
             <ScheduleAvailableTimes
-              mechanicSelected={Mechanic}
-              selectedDate={selectedDate}
-              selectedTime={selectedTime}
-              setSelectedTime={setSelectedTime}
+              mechanicSelected={props.Mechanic}
+              selectedDate={props.selectedDate}
+              selectedTime={props.selectedTime}
+              setSelectedTime={props.setSelectedTime}
             />
             :
             <></>

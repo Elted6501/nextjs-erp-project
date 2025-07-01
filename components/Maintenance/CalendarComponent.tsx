@@ -1,13 +1,6 @@
+import { CalendarProps } from "@/Types/Maintenance/schedule";
 import { addMonths, eachDayOfInterval, endOfMonth, endOfWeek, format, isAfter, isBefore, isSameDay, isSameMonth, isToday, parse, startOfMonth, startOfWeek, } from "date-fns";
 import { useState } from "react";
-
-type CalendarProps = {
-  selected?: string;
-  onSelect?: (date: string) => void;
-  onSelectTime?: (date: Date) => void;
-  fromDate?: Date;
-  toDate?: Date;
-};
 
 function Calendar({ selected, onSelect, onSelectTime, fromDate = new Date(), toDate = addMonths(new Date(), 1), }: CalendarProps) {
   const [currentMonth, setCurrentMonth] = useState(format(new Date(), "dd/MM/yyyy"));

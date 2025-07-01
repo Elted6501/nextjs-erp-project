@@ -1,8 +1,18 @@
+import { Dispatch, JSX, SetStateAction } from "react";
+
 export type CalendarMaintenance = {
     selected: Date | undefined;
     onSelect: React.Dispatch<React.SetStateAction<Date | undefined>>;
     fromDate?: Date;
     toDate?: Date;
+};
+
+export type CalendarProps = {
+  selected?: string;
+  onSelect?: (date: string) => void;
+  onSelectTime?: (date: Date) => void;
+  fromDate?: Date;
+  toDate?: Date;
 };
 
 export type ScheduleClientSelection = {
@@ -40,13 +50,14 @@ export type History = {
 };
 
 export type ScheduleServicesType = {
-    setStep: React.Dispatch<React.SetStateAction<number>>;
-    setMechanic: React.Dispatch<React.SetStateAction<string>>;
-    mechanic: string;
-    mechanics: Mechanic[];
-    total: number;
-    selectedServices: string[];
-    setSelectedServices: React.Dispatch<React.SetStateAction<string[]>>;
+  setStep: (step: number) => void;
+  mechanic: { employee_id: number, first_name: string, last_name: string };
+  setMechanic: (val: { employee_id: number, first_name: string, last_name: string }) => void;
+  total: number;
+  selectedServices: string[];
+  setSelectedServices: Dispatch<SetStateAction<string[]>>
+  mechanics: Mechanic[];
+  services: { name: string, service_price: number }[]
 };
 
 export type MechanicsScheduleType = {
@@ -80,12 +91,27 @@ export type ScheduleServicesSelectedType = {
 };
 
 export type ScheduleAppointmentType = {
+  selectedDate?: string;
+  onSelectTime?: (value: Date) => void
+  appointmentId: string;
+  setSelectedDate: (date: string) => void;
+  selectedTime: string;
+  setSelectedTime: (time: string) => void;
+  setStep: (step: number) => void;
+  Mechanic: Mechanic
+  car: CarType
+  selectedServices: string[];
+  assignedMechanic?: { employee_id: string | number, first_name: string, last_name: string } | null | undefined;
+  client: string;
+};
+
+export type ScheduleDateOnlyType = {
     selectedDate: Date;
     setSelectedDate: (value: Date) => void;
     setSelectedTime?: React.Dispatch<React.SetStateAction<string>>;
     selectedTime?: string;
     setStep?: React.Dispatch<React.SetStateAction<number>>;
-};
+}
 
 export type ScheduleAvailableTimesType = {
     setSelectedTime: React.Dispatch<React.SetStateAction<string>>;
@@ -109,3 +135,5 @@ export type MaintenanceType = {
     mn_made: string
     mn_completed: string
 }
+
+export type FolioStatusProps = {statusSteps: {label:string,icon:JSX.Element}[], progressWidth: number, currentIndex:number}
