@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { FaCalendarCheck, FaCarSide, FaCheckCircle, FaTools, } from "react-icons/fa";
 
@@ -8,7 +9,7 @@ export default function TrackingPage() {
   const [folio, setFolio] = useState("");
   const [status, setStatus] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
-
+  const router = useRouter();
   const statusSteps = [
     { label: "Scheduled", icon: <FaCalendarCheck className="text-xl" /> },
     { label: "In Progress", icon: <FaTools className="text-xl" /> },
@@ -39,13 +40,30 @@ export default function TrackingPage() {
     }
   };
 
+  const handleDelete = async () => {
+    if(folioInput.trim() !== ""){
+         const response = await fetch("../api/maintenance/tracking/maintenance?folio="+folioInput.toString(), {
+          method: 'DELETE'
+         });
+         console.log('ajshofdisuh');
+         
+        const data = await response.json();
+
+        if (data.error) {
+          console.error(data.error);
+        } else {
+          router.push('/maintenance');
+        }
+    }
+  };
+
   const handleSaveStatus = async () => {
       if(status?.trim()){
         console.log(status, folioInput);
         
         try {
         const response = await fetch("../api/maintenance/tracking/maintenance", {
-          method: 'POST',
+          method: 'PUT',
           headers: {
             'Content-Type': 'application/json'
           },
@@ -141,6 +159,15 @@ export default function TrackingPage() {
                 className="bg-gray-200 text-gray-700 px-6 py-3 rounded-lg hover:bg-gray-300"
               >
                 Update Status
+              </button>
+            </div>
+
+            <div className="flex justify-center">
+              <button
+                onClick={handleDelete}
+                className="bg-gray-200 text-gray-700 px-6 py-3 rounded-lg hover:bg-gray-300"
+              >
+                Delete
               </button>
             </div>
           </div>

@@ -20,7 +20,7 @@ export async function GET(req: Request) {
   return NextResponse.json({ error: "There was an error" }, { status: 500 });
 }
 
-export async function POST(request: Request) {
+export async function PUT(request: Request) {
   const req = await request.json();
 
   if (typeof req.status === "string" && typeof req.folio === "string") {
@@ -35,8 +35,26 @@ export async function POST(request: Request) {
          return NextResponse.json({ error }, { status: 500 });
       }
 
-       return NextResponse.json({ status: 200 });
+      return NextResponse.json({ status: 200 });
   }
 
-  return NextResponse.json({ status: 500 });
+  return NextResponse.json({error: 'There was a problem'},{ status: 500 });
+}
+
+export async function DELETE(request: Request){
+   const folio = new URLSearchParams(new URL(request.url).searchParams).get("folio"); 
+
+  if(typeof folio === 'string'){
+    const supabase = await createClient();
+    
+    const {error} = await supabase.from('maintenance').delete().eq('maintenance_folio', folio.toString());
+
+    if(error){
+      return NextResponse.json({ error }, { status: 500 });
+    }
+
+      return NextResponse.json({ status: 200 });
+  }
+
+  return NextResponse.json({error: 'There was a problem'},{ status: 500 });
 }
