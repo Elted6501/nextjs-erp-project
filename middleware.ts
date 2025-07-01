@@ -7,7 +7,7 @@ const JWT_SECRET:string = process.env.JWT_SECRET!;
 export function middleware(request: NextRequest){
     if (request.nextUrl.pathname.startsWith('/maintenance')) {        
         const response = NextResponse.next();
-        const information = request.cookies.get('token');
+        const information = request.cookies.get('token')?.value;
           
         if(information){
             jwt.verify(information, JWT_SECRET, (err)=>{
