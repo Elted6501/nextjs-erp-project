@@ -8,11 +8,11 @@ export type CalendarMaintenance = {
 };
 
 export type CalendarProps = {
-  selected?: string;
-  onSelect?: (date: string) => void;
-  onSelectTime?: (date: Date) => void;
-  fromDate?: Date;
-  toDate?: Date;
+    selected?: string;
+    onSelect?: (date: string) => void;
+    onSelectTime?: (date: Date) => void;
+    fromDate?: Date;
+    toDate?: Date;
 };
 
 export type ScheduleClientSelection = {
@@ -50,14 +50,14 @@ export type History = {
 };
 
 export type ScheduleServicesType = {
-  setStep: (step: number) => void;
-  mechanic: { employee_id: number, first_name: string, last_name: string };
-  setMechanic: (val: { employee_id: number, first_name: string, last_name: string }) => void;
-  total: number;
-  selectedServices: string[];
-  setSelectedServices: Dispatch<SetStateAction<string[]>>
-  mechanics: Mechanic[];
-  services: { name: string, service_price: number }[]
+    setStep: (step: number) => void;
+    mechanic: { employee_id: number, first_name: string, last_name: string };
+    setMechanic: (val: { employee_id: number, first_name: string, last_name: string }) => void;
+    total: number;
+    selectedServices: string[];
+    setSelectedServices: Dispatch<SetStateAction<string[]>>
+    mechanics: Mechanic[];
+    services: { name: string, service_price: number }[]
 };
 
 export type MechanicsScheduleType = {
@@ -91,18 +91,18 @@ export type ScheduleServicesSelectedType = {
 };
 
 export type ScheduleAppointmentType = {
-  selectedDate?: string;
-  onSelectTime?: (value: Date) => void
-  appointmentId: string;
-  setSelectedDate: (date: string) => void;
-  selectedTime: string;
-  setSelectedTime: (time: string) => void;
-  setStep: (step: number) => void;
-  Mechanic: Mechanic
-  car: CarType
-  selectedServices: string[];
-  assignedMechanic?: { employee_id: string | number, first_name: string, last_name: string } | null | undefined;
-  client: string;
+    selectedDate?: string;
+    onSelectTime?: (value: Date) => void
+    appointmentId: string;
+    setSelectedDate: (date: string) => void;
+    selectedTime: string;
+    setSelectedTime: (time: string) => void;
+    setStep: (step: number) => void;
+    Mechanic: Mechanic
+    car: CarType
+    selectedServices: string[];
+    assignedMechanic?: { employee_id: string | number, first_name: string, last_name: string } | null | undefined;
+    client: string;
 };
 
 export type ScheduleDateOnlyType = {
@@ -136,4 +136,4 @@ export type MaintenanceType = {
     mn_completed: string
 }
 
-export type FolioStatusProps = {statusSteps: {label:string,icon:JSX.Element}[], progressWidth: number, currentIndex:number}
+export type FolioStatusProps = { statusSteps: { label: string, icon: JSX.Element }[], progressWidth: number, currentIndex: number }

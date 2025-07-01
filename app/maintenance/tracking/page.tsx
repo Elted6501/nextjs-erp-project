@@ -3,14 +3,17 @@
 import FolioStatus from "@/components/Maintenance/FolioStatus";
 import Inputs from "@/components/Maintenance/Inputs";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { FaCalendarCheck, FaCarSide, FaCheckCircle, FaTools, } from "react-icons/fa";
+import { getRole } from "./getRole";
 
 export default function TrackingPage() {
   const [folioInput, setFolioInput] = useState("");
   const [folio, setFolio] = useState("");
   const [status, setStatus] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
+  const [role, setRole] = useState<string>('');
+
   const router = useRouter();
   const statusSteps = [
     { label: "Scheduled", icon: <FaCalendarCheck className="text-xl" /> },
@@ -23,6 +26,13 @@ export default function TrackingPage() {
 
   let progressWidth = ((currentIndex + 0.5) / (statusSteps.length - 1)) * 100;
   progressWidth = progressWidth > 100 ? 100 : progressWidth;
+
+  useEffect(()=>{
+    (async ()=>{
+      const response = await getRole();
+      setRole(response);
+    })()    
+  },[])
   
   const handleCheckStatus = async () => {
     if (folioInput.trim() !== "") {
@@ -117,23 +127,28 @@ export default function TrackingPage() {
 
            <FolioStatus currentIndex={currentIndex} progressWidth={progressWidth} statusSteps={statusSteps} />
 
-            <div className="flex justify-center">
-              <button
-                onClick={() => setIsEditing(true)}
-                className="bg-gray-200 text-gray-700 px-6 py-3 rounded-lg hover:bg-gray-300"
-              >
-                Update Status
-              </button>
-            </div>
+            {role == '6'  ? (
+                <>
+                  <div className="flex justify-center">
+                <button
+                  onClick={() => setIsEditing(true)}
+                  className="bg-gray-200 text-gray-700 px-6 py-3 rounded-lg hover:bg-gray-300"
+                >
+                  Update Status
+                </button>
+              </div>
 
-            <div className="flex justify-center">
-              <button
-                onClick={handleDelete}
-                className="bg-gray-200 text-gray-700 px-6 py-3 rounded-lg hover:bg-gray-300"
-              >
-                Delete
-              </button>
-            </div>
+              <div className="flex justify-center">
+                <button
+                  onClick={handleDelete}
+                  className="bg-gray-200 text-gray-700 px-6 py-3 rounded-lg hover:bg-gray-300"
+                >
+                  Delete
+                </button>
+              </div>
+                </>
+              ) : <></>
+            }
           </div>
         )}
 
