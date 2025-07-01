@@ -7,17 +7,25 @@ import Button from "@/components/Button";
 import { FaCheck, FaEye, FaTimes, FaFileExcel } from "react-icons/fa";
 import { IoFilter } from "react-icons/io5";
 import Dropdown from "@/components/Dropdown";
+import toExcel from "@/lib/xlsx/toExcel";
 
 const columns = [
   { key: "id", label: "Order ID", type: "text" },
   { key: "client", label: "Client", type: "text" },
-  { key: "suplier", label: "Suplier", type: "text" },
-  { key: "quantity", label: "Quantity", type: "text" },
-  { key: "description", label: "Description", type: "text" },
+  { key: "products", label: "Products", type: "text" },
   { key: "status", label: "Status", type: "text" },
   { key: "date", label: "Date", type: "text" },
   { key: "actions", label: "Actions", type: "action" },
 ];
+
+type OrderData = {
+  id: string;
+  client: string;
+  products: string;
+  quantity: string;
+  status: string;
+  date: string;
+};
 
 export default function OrdersPage() {
   const router = useRouter();
@@ -32,9 +40,10 @@ export default function OrdersPage() {
         const transformedData = data.map((order: any) => ({
           id: order.order_id, // Assuming order_id is the unique identifier
           client: order.client_name,
-          suplier: order.name,
-          quantity: order.quantity,
-          description: order.description,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          products: order.products.map((product: any) => product.product_name).join(", "), // Join product names
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          quantity: order.products.map((product: any) => product.quantity).join(", "), // Join quantities
           status: order.status,
           date: order.order_date,
         }));
@@ -44,6 +53,36 @@ export default function OrdersPage() {
         console.error("Error fetching orders:", error);
       });
   }, []);
+
+  const handleExportExcel = async () => {
+    const sheetName = "Orders Report";
+    const content = orders.map((order: OrderData) => ({
+      id: order.id,
+      client: order.client,
+      products: order.products,
+      quantity: order.quantity,
+      status: order.status,
+      date: order.date,
+    }));
+
+    const columns = [
+      { label: "Order ID", value: "id" },
+      { label: "Client", value: "client" },
+      { label: "Products", value: "products" },
+      { label: "Quantity", value: "quantity" },
+      { label: "Status", value: "status" },
+      { label: "Date", value: "date" },
+    ];
+
+    try {
+      await toExcel(sheetName, columns, content);
+      alert("Excel file created successfully");
+    } catch (error) {
+      console.error("Error creating Excel file:", error);
+      alert("Failed to create Excel file");
+    }
+  };
+
 
   const handleView = (id: string) => {
     router.push(`/finance/pending-to-pay/${id}`);
@@ -80,7 +119,7 @@ export default function OrdersPage() {
             className="bg-[#a01217] text-white hover:bg-[#8b0f14] transition-colors p-2 w-fit h-fit"
             onClick={() => setShowButton(!showButton)}
           />
-          <Button
+          <Button onClick={handleExportExcel}
             label={
               <div className="flex items-center gap-2">
                 <FaFileExcel className="w-4 h-4" />

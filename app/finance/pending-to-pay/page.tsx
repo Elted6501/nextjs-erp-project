@@ -18,7 +18,7 @@ import DateInput from "@/components/DateInput";
 type PendingToPayData = {
   id: string;
   OrderId: string;
-  Product: string;
+  Products: string;
   Status: string;
   DueDate: string;
   PayDate: string;
@@ -32,7 +32,7 @@ const ORDER_STATUS_OPTIONS = [
 
 const TABLE_COLUMNS = [
   { key: "OrderId", label: "Order Id", type: "text" },
-  { key: "Product", label: "Product", type: "text" },
+  { key: "Products", label: "Products", type: "text" },
   { key: "Status", label: "Status", type: "text" },
   { key: "DueDate", label: "Due Date", type: "text" },
   { key: "PayDate", label: "Pay Date", type: "text" },
@@ -52,13 +52,14 @@ export default function PendingToPayPage() {
       .then((response) => response.json())
       .then((data) => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const transformData = data.map((item: any) => ({
-          id: item.payable_id,
-          OrderId: item.order_id,
-          Product: item.name,
-          Status: item.status,
-          DueDate: item.due_date,
-          PayDate: item.payment_date,
+        const transformData = data.map((pendingToPay: any) => ({
+          id: pendingToPay.payable_id,
+          OrderId: pendingToPay.order_id,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          Products: pendingToPay.products.map((product: any) => product.product_name).join(", "),
+          Status: pendingToPay.payment_status,
+          DueDate: pendingToPay.due_date,
+          PayDate: pendingToPay.payment_date,
         }));
         setPendingToPay(transformData);
       })
@@ -70,9 +71,9 @@ export default function PendingToPayPage() {
   const handleExportExcel = async () => {
     const sheetName = "Pending to pay";
     const content = pendingToPay.map(
-      ({ OrderId, Product, Status, DueDate, PayDate }) => ({
+      ({ OrderId, Products, Status, DueDate, PayDate }) => ({
         OrderId,
-        Product,
+        Products,
         Status,
         DueDate,
         PayDate,
@@ -81,7 +82,7 @@ export default function PendingToPayPage() {
 
     const columns = [
       { label: "Order Id", value: "OrderId" },
-      { label: "Product", value: "Product" },
+      { label: "Products", value: "Products" },
       { label: "Status", value: "Status" },
       { label: "Due Date", value: "DueDate" },
       { label: "Pay Date", value: "PayDate" },
