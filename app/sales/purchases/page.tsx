@@ -249,14 +249,19 @@ export default function SalesPage() {
     setIsCreatingSale(true);
 
     try {
+      // Calcular el total antes del VAT
+      const subtotal = rows.reduce((sum, item) => sum + item.totalPrice, 0);
+      const vat = subtotal * 0.16; // 16% VAT
+
       const saleData = {
         client_id: selectedClient?.client_id || null,
-        employee_id: null,
-        payment_method: 'Cash',
-        vat: totalPrice * 0.16,
-        notes: '', 
+        employee_id: null, // TODO: Implement employee selection
+        payment_method: 'Cash', // TODO: Implement payment method selection
+        vat: vat,
+        notes: '', // TODO: Implement notes input
         items: rows.map(item => ({
           product_id: item.product_id,
+          name: item.name,
           quantity: item.quantity,
           unitPrice: item.unitPrice,
           totalPrice: item.totalPrice
@@ -284,12 +289,11 @@ export default function SalesPage() {
         ? ` - Client: ${getClientDisplayName(selectedClient)}`
         : ' - No client assigned';
 
-      // Manejar respuesta con múltiples productos
-      const saleInfo = result.sales_created ? 
-        `${result.total_items} products sold - Ref: ${result.sale_reference}` :
-        `Sale ID: ${result.sale_id}`;
+      // Actualizar el mensaje de éxito para el nuevo formato
+      const saleInfo = `Sale ID: ${result.sale_id}`;
+      const totalAmount = result.total_amount || 0;
 
-      setModalMessage(`Sale created successfully! ${saleInfo} - Total: ${(result.total_amount || result.total).toFixed(2)}${clientInfo}`);
+      setModalMessage(`Sale created successfully! ${saleInfo} - Total: $${totalAmount.toFixed(2)}${clientInfo}`);
       setShowModal(true);
       
       setTimeout(() => {
@@ -674,13 +678,36 @@ export default function SalesPage() {
                       <td className="px-6 py-4" colSpan={3}>
                         <div className="flex items-center gap-2">
                           <DollarSign size={20} className="text-green-600" />
-                          <span className="text-lg">Totals</span>
+                          <span className="text-lg">Subtotal</span>
                         </div>
                       </td>
                       <td className="px-6 py-4 text-center text-lg">{totalQuantity}</td>
                       <td className="px-6 py-4"></td>
                       <td className="px-6 py-4 text-right text-xl text-green-600">
                         ${totalPrice.toFixed(2)}
+                      </td>
+                      <td className="px-6 py-4"></td>
+                    </tr>
+                    <tr className="font-bold text-gray-900 bg-gray-100">
+                      <td className="px-6 py-4" colSpan={5}>
+                        <div className="flex items-center gap-2">
+                          <span className="text-lg">VAT (16%)</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-right text-lg text-gray-700">
+                        ${(totalPrice * 0.16).toFixed(2)}
+                      </td>
+                      <td className="px-6 py-4"></td>
+                    </tr>
+                    <tr className="font-bold text-gray-900 bg-green-50">
+                      <td className="px-6 py-4" colSpan={5}>
+                        <div className="flex items-center gap-2">
+                          <DollarSign size={20} className="text-green-600" />
+                          <span className="text-xl">Total</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-right text-2xl text-green-600">
+                        ${(totalPrice * 1.16).toFixed(2)}
                       </td>
                       <td className="px-6 py-4"></td>
                     </tr>
