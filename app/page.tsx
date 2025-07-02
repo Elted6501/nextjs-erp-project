@@ -75,29 +75,30 @@ export default function Home() {
         </div>
 
         {/* Module Cards Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6 w-full max-w-8xl">
-           {modules.filter(module => hasPermission(module.permission) || hasPermission('system.admin')).map(module => (
-               <Link
-                   key={module.name}
-                   href={module.href}
-                   className="group relative p-8 bg-white/95 backdrop-blur-sm rounded-3xl shadow-lg hover:shadow-2xl transition-all duration-500 border border-gray-200/50 hover:border-red-300/50 transform hover:-translate-y-2 hover:scale-105 overflow-hidden"
-               >
-                   <div className="absolute inset-0 bg-gradient-to-br from-red-600/10 to-red-700/15 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                   <div className="relative z-10">
-                       <div className="w-16 h-16 bg-gradient-to-br from-red-800 to-red-600 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
-                           {module.icon}
-                       </div>
-                       <h2 className="text-2xl font-bold text-gray-900 mb-3 group-hover:text-red-700 transition-colors duration-300">
-                           {module.name}
-                       </h2>
-                       <p className="text-gray-600 leading-relaxed group-hover:text-gray-700 transition-colors duration-300">
-                           {module.description}
-                       </p>
-                   </div>
-               </Link>
-           ))}
-        </div>
-
+          <div className="flex flex-wrap justify-center gap-6 w-full max-w-8xl mx-auto">
+            {modules.filter(module => hasPermission(module.permission) || hasPermission('system.admin')).map(module => (
+                <Link
+                    key={module.name}
+                    href={module.href}
+                    className="w-[300px] group relative p-8 bg-white/95 backdrop-blur-sm rounded-3xl shadow-lg hover:shadow-2xl transition-all duration-500 border border-gray-200/50 hover:border-red-300/50 transform hover:-translate-y-2 hover:scale-105 overflow-hidden"
+      
+                >
+                    <div className="absolute inset-0 bg-gradient-to-br from-red-600/10 to-red-700/15 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                    <div className="relative z-10">
+                        <div className="w-16 h-16 bg-gradient-to-br from-red-800 to-red-600 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
+                            {module.icon}
+                        </div>
+                        <h2 className="text-2xl font-bold text-gray-900 mb-3 group-hover:text-red-700 transition-colors duration-300">
+                            {module.name}
+                        </h2>
+                        <p className="text-gray-600 leading-relaxed group-hover:text-gray-700 transition-colors duration-300">
+                            {module.description}
+                        </p>
+                    </div>
+                </Link>
+            ))}
+          </div>
+              
         {/* Call to Action */}
 
       </div>
