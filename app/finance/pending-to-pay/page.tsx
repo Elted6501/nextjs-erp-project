@@ -3,17 +3,9 @@ import Button from "@/components/Button";
 import Dropdown from "@/components/Dropdown";
 import DynamicTable from "@/components/DynamicTable";
 import { useEffect, useState } from "react";
-import {
-  FaFileExcel,
-  FaEye,
-  FaTimes,
-  FaRegCheckCircle,
-  /*FaPlus,*/
-} from "react-icons/fa";
+import { FaFileExcel, FaEye, FaTimes, FaRegCheckCircle } from "react-icons/fa";
 import styles from "@/app/finance/page.module.css";
-// import { useRouter } from "next/navigation";
 import toExcel from "@/lib/xlsx/toExcel";
-import DateInput from "@/components/DateInput";
 
 type PendingToPayData = {
   id: string;
@@ -25,9 +17,15 @@ type PendingToPayData = {
 };
 
 const ORDER_STATUS_OPTIONS = [
-  { label: "Pending", value: "Pending" },
+  { label: "Unpaid", value: "Unpaid" },
   { label: "Paid", value: "Paid" },
   { label: "Cancelled", value: "Cancelled" },
+  { label: "Expired", value: "Expired" },
+];
+
+const ORDER_DATE_OPTIONS = [
+  { label: "Close to due date", value: "Cloese to due date" },
+  { label: "Close to pay date", value: "Close to pay date" },
 ];
 
 const TABLE_COLUMNS = [
@@ -45,7 +43,7 @@ export default function PendingToPayPage() {
   const [filteredData, setFilteredData] = useState<PendingToPayData[]>([]);
   const [status, setStatus] = useState("");
   const [description, setDescription] = useState("");
-  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [date, setDate] = useState("");
 
   useEffect(() => {
     fetch("/api/finance/pending_to_pay")
@@ -66,19 +64,17 @@ export default function PendingToPayPage() {
       .catch((error) => {
         console.error("Error fetching pending to pay data:", error);
       });
-  }, [status]);
+  }, [status, description]);
 
   const handleExportExcel = async () => {
     const sheetName = "Pending to pay";
-    const content = pendingToPay.map(
-      ({ OrderId, Products, Status, DueDate, PayDate }) => ({
-        OrderId,
-        Products,
-        Status,
-        DueDate,
-        PayDate,
-      })
-    );
+    const content = pendingToPay.map(({ OrderId, Products, Status, DueDate, PayDate }) => ({
+      OrderId,
+      Products,
+      Status,
+      DueDate,
+      PayDate,
+    }));
 
     const columns = [
       { label: "Order Id", value: "OrderId" },
@@ -101,99 +97,67 @@ export default function PendingToPayPage() {
     let data = pendingToPay;
 
     if (status) {
-      data = data.filter((item) =>
-        item.Status.toLowerCase().includes(status.toLowerCase())
-      );
+      data = data.filter((item) => item.Status.includes(status));
     }
     if (description) {
-      data = data.filter((item) =>
-        item.OrderId.toString().includes(description.toString())
-      );
+      data = data.filter((item) => item.OrderId.toString().includes(description.toString()));
     }
-
+    
     setFilteredData(data);
-  }, [status, description, pendingToPay]);
+  }, [status, description, date]);
 
   const handleStatusSelect = (value: string) => {
     setDescription("");
+    setDate("");
     setStatus(value);
+  };
+
+  const handleDateSelect = (value: string) => {
+    setDescription("");
+    setStatus("");
+    setDate(value);
   };
 
   return (
     <main className={styles.div_principal}>
-      <form>
-        <div
-          className={`${styles.div_principal_top} flex gap-4 mb-6 items-center`}
-        >
-          <div className={`${styles.div_busqueda} flex mb-6 items-center`}>
-            <label
-              className="text-2xl text-[#8b0f14] font-bold"
-              style={{ alignSelf: "flex-start" }}
-            >
-              Filters
-            </label>
-            <div className={styles.div_hijo_busqueda}>
-              {/* <input
-                type="text"
-                placeholder="Search by order id"
-                className="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 bg-white border-[#a01217] focus:ring-[#a01217] text-black"
-                value={description}
-                onFocus={() => setStatus("")}
-                onChange={(e) => setDescription(e.target.value)}
-              /> */}
-              <Dropdown
-                options={ORDER_STATUS_OPTIONS}
-                onSelect={handleStatusSelect}
-                placeholder={status === "" ? "Select status" : status}
-                className="mt-1"
-              />
-              <Dropdown
-                options={ORDER_STATUS_OPTIONS}
-                onSelect={handleStatusSelect}
-                placeholder={status === "" ? "Select status" : status}
-                className="mt-1"
-              />
-              <Dropdown
-                options={ORDER_STATUS_OPTIONS}
-                onSelect={handleStatusSelect}
-                placeholder={status === "" ? "Select status" : status}
-                className="mt-1"
-              />  
-              
-
-              <DateInput
-              label="Select Date:"
-                selectedDate={selectedDate}
-                onChange={setSelectedDate}
-              />
+      <div className={`${styles.div_principal_top} flex gap-2 mb-6 items-center`}>
+        <div className={`${styles.div_busqueda} gap-y-3 flex items-center w-full`}>
+          <label className="text-2xl text-[#8b0f14] font-bold" style={{ alignSelf: "flex-start" }}>
+            Pending to pay
+          </label>
+          <div className={'{$styles.div_hijo_busqueda} flex justify-between items-center w-full'} >
+            <div className="flex gap-4 items-center w-full max-w-4xl">
+            <input
+              type="text"
+              placeholder="Search by Order ID"
+              className="w-[300px] px-4 border rounded-lg focus:outline-none focus:ring-2 bg-white border-[#a01217] focus:ring-[#a01217] text-black h-[37px]"
+              value={description}
+              onFocus={() => {
+                setStatus("");
+              }}
+              onChange={(e) => setDescription(e.target.value)}
+            />
+            <Dropdown options={ORDER_STATUS_OPTIONS} onSelect={handleStatusSelect} placeholder={status === "" ? "Select status" : status} />
+            <Dropdown options={ORDER_DATE_OPTIONS} onSelect={handleDateSelect} placeholder={date === "" ? "Select type date" : date} />
             </div>
-          </div>
-          <div className="flex items-end gap-2 flex-row">
-            {/* <Button
-              label={
-                <div className="flex items-center gap-2">
-                  <span>New Pending to pay</span>
-                  <FaPlus className="w-4 h-4" />
-                </div>
-              }
-              className="bg-[#a01217] text-white hover:bg-[#8b0f14] transition-colors p-2 w-fit h-fit"
-              onClick={() => router.push("/finance/pending-to-pay/create")}
-            /> */}
+            <div>
             <Button
               label={
-                <div className="flex items-center gap-2">
+                <div className="flex items-center justify-center gap-2 w-full h-full">
                   <FaFileExcel className="w-4 h-4" />
                   <span>Excel</span>
                 </div>
               }
-              className="bg-[#a01217] text-white hover:bg-[#8b0f14] transition-colors p-2 w-fit h-fit"
+              className="bg-[#a01217] text-white hover:bg-[#8b0f14] transition-colors px-4 h-[37px] rounded-lg flex items-center justify-center"
               onClick={handleExportExcel}
             />
+            </div>
           </div>
         </div>
-      </form>
+      </div>
+
       <DynamicTable
-        data={status === "" && description === "" ? pendingToPay : filteredData}
+        data={status || description || date ? filteredData : pendingToPay}
         columns={TABLE_COLUMNS}
         actionIcons={{
           icon1: <FaEye className="w-5 h-5" />,

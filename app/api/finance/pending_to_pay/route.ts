@@ -11,16 +11,3 @@ export async function GET() {
 
   return NextResponse.json(pending_to_pay);
 }
-
-export async function POST(request: Request) {
-  const supabase = await createClient();
-  const body = await request.json();
-
-  const { data, error } = await supabase.from("pending_to_pay").insert(body);
-
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
-
-  return NextResponse.json(data, { status: 201 });
-}
