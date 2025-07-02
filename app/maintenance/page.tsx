@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { CalendarClock, History, LocateFixed } from "lucide-react";
+import { CalendarClock, History, LocateFixed, ShoppingCart } from "lucide-react";
 import { motion } from "framer-motion";
 
 const cards = [
@@ -22,6 +22,12 @@ const cards = [
     description: "View past service records",
     icon: History,
     href: "/maintenance/history",
+  },
+    {
+    title: "Products",
+    description: "View and select the products",
+    icon: ShoppingCart,
+    href: "/maintenance/products",
   },
 ];
 

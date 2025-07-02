@@ -18,9 +18,7 @@ export async function middleware(request: NextRequest){
         }
 
         try {
-            const response = await verifyJWT(information);
-            console.log(response);
-            
+            await verifyJWT(information);
             return NextResponse.next();
         } catch (err) {
             console.error('Token verification failed', err);
