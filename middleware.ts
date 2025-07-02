@@ -1,26 +1,30 @@
 import {NextResponse} from 'next/server';
 import type {NextRequest} from 'next/server';
-import jwt from 'jsonwebtoken';
+import { jwtVerify } from 'jose';
 
 const JWT_SECRET:string = process.env.JWT_SECRET!;
 
-export function middleware(request: NextRequest){
+async function verifyJWT(token: string) {
+  const secret = new TextEncoder().encode(JWT_SECRET);
+  return await jwtVerify(token, secret);
+}
+
+export async function middleware(request: NextRequest){
     if (request.nextUrl.pathname.startsWith('/maintenance')) {        
-        const response = NextResponse.next();
         const information = request.cookies.get('token')?.value;
-          
-        if(information){
-            jwt.verify(information, JWT_SECRET, (err)=>{
-                if(err){
-                    return NextResponse.redirect(new URL('/login', request.nextUrl));
-                }
-                  
-                return response;
-            });
-        }else{
-            return NextResponse.redirect(new URL('/login', request.nextUrl));
+        
+        if(!information){
+            return NextResponse.redirect(new URL('/login', request.url));
         }
-      
-        return response;
-  }
+
+        try {
+            const response = await verifyJWT(information);
+            console.log(response);
+            
+            return NextResponse.next();
+        } catch (err) {
+            console.error('Token verification failed', err);
+            return NextResponse.redirect(new URL('/login', request.url));
+        }  
+    }
 }
