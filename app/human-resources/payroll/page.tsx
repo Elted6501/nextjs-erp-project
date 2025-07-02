@@ -1,143 +1,141 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Button from '@/components/Button';
-import Dropdown from '@/components/Dropdown';
 import DynamicTable from '@/components/DynamicTable';
-
-const employees = [
-  { label: 'Alice Johnson', value: '1' },
-  { label: 'Bob Martinez', value: '2' },
-  { label: 'Charlie Smith', value: '3' },
-];
-
-const dummyPayroll = [
-  {
-    id: '1',
-    employeeName: 'Alice Johnson',
-    baseSalary: '$2,500',
-    bonuses: '$200',
-    deductions: '$50',
-    payPeriod: '2024-06-01 to 2024-06-15',
-    paymentDate: '2024-06-16',
-  },
-  {
-    id: '2',
-    employeeName: 'Bob Martinez',
-    baseSalary: '$2,000',
-    bonuses: '$150',
-    deductions: '$30',
-    payPeriod: '2024-06-01 to 2024-06-15',
-    paymentDate: '2024-06-16',
-  },
-  {
-    id: '3',
-    employeeName: 'Charlie Smith',
-    baseSalary: '$2,200',
-    bonuses: '$100',
-    deductions: '$20',
-    payPeriod: '2024-06-01 to 2024-06-15',
-    paymentDate: '2024-06-16',
-  },
-];
+import * as XLSX from 'xlsx';
+import { FaSearch } from 'react-icons/fa';
 
 const columns = [
   { key: 'select', label: '', type: 'checkbox' },
-  { key: 'employeeName', label: 'Employee Name', type: 'text' },
+  { key: 'name', label: 'Employee Name', type: 'text' },
   { key: 'baseSalary', label: 'Base Salary', type: 'text' },
-  { key: 'bonuses', label: 'Bonuses', type: 'text' },
   { key: 'deductions', label: 'Deductions', type: 'text' },
+  { key: 'workedHours', label: 'Worked Hours', type: 'text' }, // Added column
+  { key: 'netPayment', label: 'Net Payment', type: 'text' },
   { key: 'payPeriod', label: 'Pay Period', type: 'text' },
   { key: 'paymentDate', label: 'Payment Date', type: 'text' },
 ];
 
+type PayrollRow = {
+  id: string;
+  employeeId: number;
+  name: string;
+  baseSalary: string;
+  deductions: string;
+  workedHours: string; // Added field
+  netPayment: string;
+  payPeriod: string;
+  paymentDate: string;
+};
+
 export default function PayrollPage() {
-  const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [payroll] = useState(dummyPayroll);
-  const [dateRange, setDateRange] = useState<{ from: string; to: string }>({ from: '', to: '' });
+  const [selectedIds, setSelectedIds] = useState<string[]>([]); // changed from number[] to string[]
+  const [payrollData, setPayrollData] = useState<PayrollRow[]>([]);
+  const [fromDate, setFromDate] = useState('');
+  const [toDate, setToDate] = useState('');
+  const [searchText, setSearchText] = useState('');
 
+  const fetchPayrollData = async () => {
+    if (!fromDate || !toDate) return;
 
-  interface PayrollItem {
-    id: string;
-    employeeName: string;
-    baseSalary: string;
-    bonuses: string;
-    deductions: string;
-    payPeriod: string;
-    paymentDate: string;
-  }
+    // Fetch payroll data (which already includes workedHours)
+    const payrollRes = await fetch(`/api/payroll/data?from=${fromDate}&to=${toDate}`);
+    const payrollRaw = await payrollRes.json();
 
-  // Render action buttons for each row
-  const renderActions = (row: PayrollItem) => (
-    <div className="flex gap-2">
-      <Button
-        label="Download Payslip"
-        onClick={() => alert(`Download payslip for: ${row.employeeName}`)}
-        className="bg-blue-600 text-white px-2 py-1 rounded"
-      />
-      <Button
-        label="View History"
-        onClick={() => alert(`View payroll history for: ${row.employeeName}`)}
-        className="bg-gray-600 text-white px-2 py-1 rounded"
-      />
-      <Button
-        label="Recalculate"
-        onClick={() => alert(`Recalculate payroll for: ${row.employeeName}`)}
-        className="bg-yellow-500 text-white px-2 py-1 rounded"
-      />
-    </div>
+    const today = new Date().toISOString().split('T')[0];
+
+    const processed: PayrollRow[] = payrollRaw.map((emp: any) => {
+      const base = Number(emp.baseSalary) || 0;
+      const ded = Number(emp.deductions) || 0;
+      const net = base - ded;
+      return {
+        id: String(emp.employeeId),
+        employeeId: emp.employeeId,
+        name: emp.name,
+        baseSalary: emp.baseSalary,
+        deductions: emp.deductions,
+        workedHours: emp.workedHours, // Use value from API
+        netPayment: net.toFixed(2),
+        payPeriod: `${fromDate} to ${toDate}`,
+        paymentDate: today,
+      };
+    });
+
+    setPayrollData(processed);
+  };
+
+  const filteredData = payrollData.filter((row) =>
+    row.name.toLowerCase().includes(searchText.toLowerCase())
   );
 
+  const exportToExcel = () => {
+    const dataToExport = filteredData.map(row => ({
+      'Employee Name': row.name,
+      'Base Salary': row.baseSalary,
+      'Deductions': row.deductions,
+      'Worked Hours': row.workedHours, // Add to export
+      'Net Payment': row.netPayment,
+      'Pay Period': row.payPeriod,
+      'Payment Date': row.paymentDate,
+    }));
 
-  // Adapt columns for DynamicTable
-  const tableColumns = columns.map(col =>
-    col.key === 'actions'
-      ? { ...col, render: renderActions }
-      : col
-  );
+    const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Payroll');
+    XLSX.writeFile(workbook, 'payroll.xlsx');
+  };
 
   return (
     <div className="min-h-screen bg-[#ecebeb] p-6 space-y-6">
       <div className="flex justify-between items-center mb-4 flex-wrap gap-4">
         <h1 className="text-2xl font-bold text-[#a01217]">Payroll</h1>
         <div className="flex flex-wrap gap-2 items-center">
-          <Dropdown
-            options={employees}
-            placeholder="Filter by employee"
-
+          <div className="flex items-center gap-2">
+            <FaSearch className="w-4 h-4 text-[#a01217]" />
+            <input
+              type="text"
+              placeholder="Search employee"
+              className="border border-gray-300 rounded px-2 py-1 w-64"
+              value={searchText}
+              onChange={e => setSearchText(e.target.value)}
+            />
+          </div>
+          <input
+            type="date"
+            value={fromDate}
+            onChange={(e) => setFromDate(e.target.value)}
+            className="border rounded px-2 py-1"
           />
           <input
             type="date"
-            value={dateRange.from}
-            onChange={e => setDateRange({ ...dateRange, from: e.target.value })}
+            value={toDate}
+            onChange={(e) => setToDate(e.target.value)}
             className="border rounded px-2 py-1"
-            placeholder="From"
           />
-          <span>-</span>
-          <input
-            type="date"
-            value={dateRange.to}
-            onChange={e => setDateRange({ ...dateRange, to: e.target.value })}
-            className="border rounded px-2 py-1"
-            placeholder="To"
-          />
-          <Button label="Clear Filters" onClick={() => alert('Llama a la funcion clear filters')} />
-          <Button label="Generate Payroll" onClick={() => alert('Generate Payroll')} />
+          <Button label="Load Payroll" onClick={fetchPayrollData} />
+          <Button label="Export CSV" onClick={exportToExcel} />
         </div>
       </div>
 
-      <DynamicTable
-        data={payroll}
-        columns={tableColumns}
-        onSelectedRowsChange={setSelectedIds}
-      />
+      {(!fromDate || !toDate || payrollData.length === 0) ? (
+        <div className="text-center text-gray-600 py-10 text-lg">
+          Please select payment dates and press Load Payroll
+        </div>
+      ) : (
+        <DynamicTable
+          data={filteredData}
+          columns={columns}
+          onSelectedRowsChange={(ids) => setSelectedIds(ids)}
+        />
+      )}
 
       {selectedIds.length > 0 && (
-        <div className="flex justify-end">
+        <div className="flex justify-end gap-2">
           <Button
-            label={`Download Payslip (${selectedIds.length})`}
-            className="bg-blue-600 text-white"
-            onClick={() => alert(`Download payslips for: ${selectedIds.join(', ')}`)}
+            label={`Generate Payroll for ${selectedIds.length} selected`}
+            className="bg-green-600 text-white"
+            onClick={() => alert('Coming soon...')}
           />
         </div>
       )}

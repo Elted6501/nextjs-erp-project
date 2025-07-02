@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import bcrypt from "bcryptjs";
 
 export async function GET() {
   const supabase = await createClient();
@@ -32,9 +33,17 @@ export async function POST(request: Request) {
   const supabase = await createClient();
   const body = await request.json();
 
+  // Si el body incluye password, hashearla antes de guardar
+  let insertData = { ...body };
+  if (body.password) {
+    const saltRounds = 10;
+    const hashedPassword = await bcrypt.hash(body.password, saltRounds);
+    insertData.password = hashedPassword;
+  }
+
   const { data, error } = await supabase
     .from("employees")
-    .insert(body)
+    .insert(insertData)
     .select()
     .single();
 

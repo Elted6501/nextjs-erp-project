@@ -27,13 +27,20 @@ function Login() {
         body: JSON.stringify({ username, password }),
       });
 
+      const data = await res.json();
+
+      if (res.ok && data.mustChangePassword) {
+        // Redirige a la vista de cambio de contraseña, pasando el userId por query
+        router.push(`/change-password?userId=${data.userId}`);
+        return;
+      }
+
       if (res.ok) {
-        const { token } = await res.json();
+        const { token } = data;
         console.log('Received JWT:', token);
         router.push('/');
       } else {
-        const { error } = await res.json();
-        alert(error || 'Invalid credentials');
+        alert(data.error || 'Invalid credentials');
       }
     } catch (err) {
       console.error(err);
@@ -86,7 +93,7 @@ function Login() {
 
           <input
             type="text"
-            placeholder="username"
+            placeholder="email"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
           />
