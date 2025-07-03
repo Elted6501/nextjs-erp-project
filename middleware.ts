@@ -12,16 +12,16 @@ async function verifyJWT(token: string) {
 export async function middleware(request: NextRequest) {
   const dataEmployee = [];
   const privPaths = [
-    // "/finance",
-    // "/inventory",
-    // "/sales",
-    // "/human-resources",
+    "/finance",
+    "/inventory",
+    "/sales",
+    "/human-resources",
     "/maintenance",
-    // "/api/finance",
-    // "/api/inventory",
-    // "/api/sales",
-    // "/api/human-resources",
-    // "/api/maintenance",
+    "/api/finance",
+    "/api/inventory",
+    "/api/sales",
+    "/api/human-resources",
+    "/api/maintenance",
   ];
 
   if (privPaths.some((path) => request.nextUrl.pathname.startsWith(path))) {
