@@ -54,10 +54,8 @@ export async function createAdminClient() {
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 remove(name: string, options: any) {
                     try {
-                        3// eslint-disable-next-line @typescript-eslint/no-explicit-any
                         cookieStore.set({ name, value: '', ...options, maxAge: 0 });
-                        4// eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    } catch (error) {
+                    } catch {
                         // Handle error if needed
                     }
                 },
