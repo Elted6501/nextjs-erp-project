@@ -30,6 +30,12 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "18"
+      - name: removed node modules and package-lock.json
+        run: |
+          rm -rf node_modules
+          rm -f package-lock.json
+      - name: run npm install
+        run: npm install
       - name: Install dependencies
         run: npm ci
       - name: Build project
