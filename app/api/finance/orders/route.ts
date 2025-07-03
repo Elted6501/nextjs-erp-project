@@ -12,15 +12,31 @@ export async function GET() {
   return NextResponse.json(orders);
 }
 
-export async function POST(request: Request) {
+export async function PUT(request: Request) {
   const supabase = await createClient();
   const body = await request.json();
+  const {order_id, status} = body;
 
-  const { data, error } = await supabase.from("orders").insert(body);
+  if(!order_id){
+    return NextResponse.json({ error: "Order ID is required" }, { status: 400 });
+  }
+  
+  const allowedStatuses = ["Confirmed", "Cancelled"];
+
+  if (status && !allowedStatuses.includes(status)) {
+    return NextResponse.json({ error: "Invalid order status" }, { status: 400 });
+  }
+
+  const { error } = await supabase.rpc('update_order_status', {
+    order_id: order_id,
+    option: status
+  })
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  return NextResponse.json(data, { status: 201 });
+  return NextResponse.json({
+    message: "Order updated successfully",
+   });
 }
