@@ -3,11 +3,11 @@ import { createClient } from "@/lib/supabase/server";
 import bcrypt from "bcryptjs";
 
 // API route to update an employee by ID
-export async function PUT(request: Request, context: { params: { id: string } }) {
+export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
   // Create a Supabase client instance
   const supabase = await createClient();
   // Extract employee ID from route params
-  const { id } = context.params;
+  const { id } = await params;
   // Parse request body
   const body = await request.json();
 

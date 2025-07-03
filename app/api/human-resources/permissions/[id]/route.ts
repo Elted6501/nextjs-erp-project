@@ -2,11 +2,11 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 
 // API route to update a permission by ID
-export async function PUT(request: Request, { params }: { params: { id: string } }) {
+export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
   // Create a Supabase client instance
   const supabase = await createClient();
   // Extract permission ID from route params
-  const { id } = params;
+  const { id } = await params;
   // Parse request body
   const body = await request.json();
 

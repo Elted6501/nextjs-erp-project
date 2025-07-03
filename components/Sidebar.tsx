@@ -39,9 +39,9 @@ export default function Sidebar() {
       icon: <FiDollarSign />,
       permission: 'finance.view',
       submodules: [
-        { name: 'Orders', href: '/finance/orders', icon: <FaClipboardList /> },
-        { name: 'Invoices', href: '/finance/invoices', icon: <FaFileInvoiceDollar /> },
-        { name: 'Pending to pay', href: '/finance/pending-to-pay', icon: <FaHandHoldingUsd /> },
+        { name: 'Orders', href: '/finance/orders', icon: <FaClipboardList />, permission: 'finance.view' },
+        { name: 'Invoices', href: '/finance/invoices', icon: <FaFileInvoiceDollar />, permission: 'finance.view' },
+        { name: 'Pending to pay', href: '/finance/pending-to-pay', icon: <FaHandHoldingUsd />, permission: 'finance.view' },
       ],
     },
     { name: 'Sales', icon: <FiShoppingCart />, href: '/sales', permission: 'sales.view' },
