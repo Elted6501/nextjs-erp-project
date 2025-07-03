@@ -3,6 +3,9 @@ import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import { usePermissions } from "./hooks/usePermissions";
 
+// Force dynamic rendering to prevent static generation issues with Supabase
+export const dynamic = 'force-dynamic';
+
 // List of all main modules with their metadata and required permissions
 const modules = [
    {

@@ -6,6 +6,9 @@ import DynamicTable from '@/components/DynamicTable';
 import * as XLSX from 'xlsx';
 import { FaSearch } from 'react-icons/fa';
 
+// Force dynamic rendering to prevent static generation issues with Supabase
+export const dynamic = 'force-dynamic';
+
 // Table column configuration for payroll
 const baseColumns = [
   { key: 'select', label: '', type: 'checkbox' },

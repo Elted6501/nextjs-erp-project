@@ -8,6 +8,9 @@ import DynamicTable from '@/components/DynamicTable';
 import DynamicFormModal, { Field } from '@/components/DynamicFormModal';
 import AlertDialog from '@/components/AlertDialog';
 import { PermissionsGate } from '@/app/components/PermissionsGate';
+
+// Force dynamic rendering to prevent static generation issues with Supabase
+export const dynamic = 'force-dynamic';
 import { FaSearch } from "react-icons/fa";
 
 // Employee interface for table data

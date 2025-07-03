@@ -8,6 +8,9 @@ import DynamicFormModal, { Field } from '@/components/DynamicFormModal';
 import * as XLSX from 'xlsx';
 import { FaSearch } from "react-icons/fa";
 
+// Force dynamic rendering to prevent static generation issues with Supabase
+export const dynamic = 'force-dynamic';
+
 // Configura tu cliente de Supabase
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
