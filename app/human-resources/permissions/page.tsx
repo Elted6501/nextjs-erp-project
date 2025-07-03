@@ -246,10 +246,13 @@ export default function PermissionsPage() {
 
         {/* Dynamic table with permissions */}
         <DynamicTable
-          data={permissions.map((perm) => {
-            const { role_ids: _, ...rest } = perm;
-            return { ...rest, id: String(perm.permission_id) };
-          })}
+          data={permissions.map((perm) => ({
+            permission_id: perm.permission_id,
+            permission_key: perm.permission_key,
+            description: perm.description,
+            roles: perm.roles,
+            id: String(perm.permission_id),
+          }))}
           columns={columns}
           onSelectedRowsChange={(ids) => setSelectedIds((ids as string[]).map(Number))}
           selectedRowIds={selectedIds.map(String)}

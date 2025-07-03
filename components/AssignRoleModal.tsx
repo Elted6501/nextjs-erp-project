@@ -50,7 +50,7 @@ export default function AssignRoleModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(0,0,0,0.3)] backdrop-blur-sm">
       <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
         <h2 className="text-lg font-bold text-[#a01217] mb-4">
-          Assign Roles to "{permissionKey}"
+          Assign Roles to &quot;{permissionKey}&quot;
         </h2>
         <div className="space-y-2 max-h-[60vh] overflow-y-auto pr-1">
           {roles.map(role => (

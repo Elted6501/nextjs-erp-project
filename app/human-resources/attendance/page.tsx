@@ -45,7 +45,7 @@ type EmployeeOption = {
 export default function AttendancePage() {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
-  const [employeeOptions, setEmployeeOptions] = useState<EmployeeOption[]>([]);
+
   const [selectedEmployee, setSelectedEmployee] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState<string>('');
   const [searchText, setSearchText] = useState('');
@@ -97,7 +97,7 @@ export default function AttendancePage() {
     if (error) {
       console.error('Error fetching attendance:', error);
       setAttendance([]);
-      setEmployeeOptions([]);
+
     } else if (Array.isArray(data)) {
       const attendanceData = data.map((item) => {
         const employee = Array.isArray(item.employees) ? item.employees[0] : item.employees;
@@ -128,10 +128,10 @@ export default function AttendancePage() {
           value: item.employeeId,
         };
       });
-      setEmployeeOptions(Object.values(uniqueEmployees));
+
     } else {
       setAttendance([]);
-      setEmployeeOptions([]);
+
     }
   };
 
@@ -276,6 +276,7 @@ export default function AttendancePage() {
                   setSelectedIds([]);
                 }
               } else if (fieldsData.includes('ClockIn') || fieldsData.includes('ClockOut')) {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 const updateObj: any = {};
                 if ('clockin' in formData) updateObj.clock_in = formData.clockin;
                 if ('clockout' in formData) updateObj.clock_out = formData.clockout;

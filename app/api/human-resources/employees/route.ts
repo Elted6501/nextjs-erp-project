@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import bcrypt from "bcryptjs";
 
 // Utilidad para obtener roles de un empleado
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function getEmployeeRoles(supabase: any, employee_id: number) {
   const { data, error } = await supabase
     .from("employee_roles")
@@ -15,8 +16,9 @@ async function getEmployeeRoles(supabase: any, employee_id: number) {
     .eq("employee_id", employee_id);
 
   if (error) return { role_ids: [], role_names: [] };
-
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
   const role_ids = data.map((r: any) => r.role_id);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const role_names = data.map((r: any) => r.roles?.role_name ?? null);
   return { role_ids, role_names };
 }
@@ -35,6 +37,7 @@ export async function GET() {
 
   // Para cada empleado, trae sus roles (como arrays)
   const mapped = await Promise.all(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (employees ?? []).map(async (emp: any) => {
       const { role_ids, role_names } = await getEmployeeRoles(supabase, emp.employee_id);
       return {
@@ -53,7 +56,7 @@ export async function POST(request: Request) {
   const body = await request.json();
 
   // Si el body incluye password, hashearla antes de guardar
-  let insertData = { ...body };
+  const insertData = { ...body };
   if (body.password) {
     const saltRounds = 10;
     const hashedPassword = await bcrypt.hash(body.password, saltRounds);

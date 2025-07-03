@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Get all roles for the user
-    const { data: rolesData, error: rolesError } = await supabase
+    const { data: rolesData} = await supabase
       .from("employee_roles")
       .select("role_id")
       .eq("employee_id", data.employee_id);

@@ -141,13 +141,37 @@ export default function EmployeesPage() {
       });
   }, []);
 
+  // FILTER: status + search + role
+  // Filter employees by status, search text, and role
+  const filteredEmployees = employees.filter(emp => {
+    // Status filter
+    const statusOk =
+      selectedStatus === 'all' ||
+      (selectedStatus === 'active' && emp.active) ||
+      (selectedStatus === 'inactive' && !emp.active);
+
+    // Search filter
+    const searchOk =
+      searchText.trim() === '' ||
+      emp.fullName?.toLowerCase().includes(searchText.toLowerCase()) ||
+      emp.email?.toLowerCase().includes(searchText.toLowerCase()) ||
+      emp.phoneNumber?.toLowerCase().includes(searchText.toLowerCase());
+
+    // Role filter
+    const roleOk =
+      selectedRole === 'all' ||
+      (Array.isArray(emp.roleIds) && emp.roleIds.map(String).includes(selectedRole));
+
+    return statusOk && searchOk && roleOk;
+  });
+
   // Set indeterminate state for select-all checkbox
   useEffect(() => {
     if (selectAllRef.current) {
       selectAllRef.current.indeterminate =
         selectedIds.length > 0 && selectedIds.length < filteredEmployees.length;
     }
-  }, [selectedIds, employees.length]); // filteredEmployees is declared after
+  }, [selectedIds, filteredEmployees.length]);
 
   // Open modal for add or update employee
   const handleOpenModal = (fieldArray: string[], title: string, employee?: Employee) => {
@@ -189,6 +213,7 @@ export default function EmployeesPage() {
 
     if (editingEmployee) {
       // Update employee
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const updateBody: any = {
         email,
         phone_number,
@@ -285,30 +310,6 @@ export default function EmployeesPage() {
 
     await fetchEmployees();
   };
-
-  // FILTER: status + search + role
-  // Filter employees by status, search text, and role
-  const filteredEmployees = employees.filter(emp => {
-    // Status filter
-    const statusOk =
-      selectedStatus === 'all' ||
-      (selectedStatus === 'active' && emp.active) ||
-      (selectedStatus === 'inactive' && !emp.active);
-
-    // Search filter
-    const searchOk =
-      searchText.trim() === '' ||
-      emp.fullName?.toLowerCase().includes(searchText.toLowerCase()) ||
-      emp.email?.toLowerCase().includes(searchText.toLowerCase()) ||
-      emp.phoneNumber?.toLowerCase().includes(searchText.toLowerCase());
-
-    // Role filter
-    const roleOk =
-      selectedRole === 'all' ||
-      (Array.isArray(emp.roleIds) && emp.roleIds.map(String).includes(selectedRole));
-
-    return statusOk && searchOk && roleOk;
-  });
 
   // Table column configuration, including select-all checkbox in header
   const columnConfig = [
@@ -429,10 +430,30 @@ export default function EmployeesPage() {
         {/* Dynamic table with employees */}
         <DynamicTable
           data={filteredEmployees.map(emp => {
-            const { roleIds, ...rest } = emp;
+            // Only include fields compatible with RowData
+            const {
+              id,
+              fullName,
+              email,
+              phoneNumber,
+              address,
+              hireDate,
+              scheduleStart,
+              scheduleEnd,
+              active,
+              roleNames
+            } = emp;
             return {
-              ...rest,
-              roleNames: Array.isArray(emp.roleNames) ? emp.roleNames.join(', ') : emp.roleNames
+              id,
+              fullName,
+              email,
+              phoneNumber,
+              address,
+              hireDate,
+              scheduleStart,
+              scheduleEnd,
+              active,
+              roleNames: Array.isArray(roleNames) ? roleNames.join(', ') : roleNames
             };
           })}
           columns={columnConfig}

@@ -53,7 +53,7 @@ export default function PayrollPage() {
     const payrollRaw = await payrollRes.json();
 
     const today = new Date().toISOString().split('T')[0];
-
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
     const processed: PayrollRow[] = payrollRaw.map((emp: any) => {
       const base = Number(emp.baseSalary) || 0;
       const ded = Number(emp.deductions) || 0;

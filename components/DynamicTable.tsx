@@ -71,7 +71,7 @@ export default function DynamicTable({
   onDataChange,
   actionHandlers,
   actionIcons,
-  selectedRowIds, // <-- Añadido
+  selectedRowIds,
   actions = {
     view: true,
     accept: true,
@@ -79,7 +79,7 @@ export default function DynamicTable({
   },
 }: Props) {
   const [selectedRows, setSelectedRows] = useState<string[]>(selectedRowIds || []);
-  const [isActive, setIsActive] = useState<boolean | undefined>();
+
   const [data, setData] = useState<RowData[]>(initialData);
   const [currentPage, setCurrentPage] = useState(1);
   const rowsPerPage = 15;
@@ -104,19 +104,6 @@ export default function DynamicTable({
     } else {
       updated = [...selectedRows, rowId];
     }
-
-  useEffect(() => {
-    setData(initialData);
-  }, [initialData]);
-
-  useEffect(() => {
-    setData(initialData);
-  }, [initialData]);
-
-  useEffect(() => {
-    console.log("el estado es: " + isActive);
-  }, [isActive]);
-
     setSelectedRows(updated);
     if (onSelectedRowsChange) onSelectedRowsChange(updated);
   };
@@ -125,7 +112,6 @@ export default function DynamicTable({
     const newData = data.map((row) => {
       if (row.id === rowId) {
         const newActive = !row.active;
-        setIsActive(newActive);
         return { ...row, active: newActive };
       }
       return row;
@@ -147,8 +133,8 @@ export default function DynamicTable({
       setSelectedRows(filtered);
       if (onSelectedRowsChange) onSelectedRowsChange(filtered);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data]);
-
 
   if (!data || data.length === 0) {
     return (
@@ -178,7 +164,40 @@ export default function DynamicTable({
           <tr className="bg-[#a01217] text-white">
             {columns.map((col) => (
               <th key={col.key} className="px-4 py-2 text-left border-b border-black">
-                {col.label}
+                {col.type === "checkbox" ? (
+                  <input
+                    type="checkbox"
+                    checked={
+                      paginatedData.length > 0 &&
+                      paginatedData.every((row) => selectedRows.includes(row.id))
+                    }
+                    onChange={e => {
+                      if (e.target.checked) {
+                        // Agrega todos los ids de la página actual
+                        const pageIds = paginatedData.map(row => row.id);
+                        const newSelected = Array.from(new Set([...selectedRows, ...pageIds]));
+                        setSelectedRows(newSelected);
+                        if (onSelectedRowsChange) onSelectedRowsChange(newSelected);
+                      } else {
+                        // Quita todos los ids de la página actual
+                        const pageIds = paginatedData.map(row => row.id);
+                        const newSelected = selectedRows.filter(id => !pageIds.includes(id));
+                        setSelectedRows(newSelected);
+                        if (onSelectedRowsChange) onSelectedRowsChange(newSelected);
+                      }
+                    }}
+                    className="w-5 h-5 accent-red-600"
+                    ref={input => {
+                      if (input) {
+                        input.indeterminate =
+                          paginatedData.some((row) => selectedRows.includes(row.id)) &&
+                          !paginatedData.every((row) => selectedRows.includes(row.id));
+                      }
+                    }}
+                  />
+                ) : (
+                  col.label
+                )}
               </th>
             ))}
           </tr>
@@ -194,21 +213,17 @@ export default function DynamicTable({
                     {col.type === "checkbox" ? (
                       <input
                         type="checkbox"
-                        checked={selectedRows?.includes(row.id)}
+                        checked={isSelected}
                         onChange={() => toggleRow(row.id)}
                         className="w-5 h-5 accent-red-600"
                       />
-
-                      <input type="checkbox" checked={isSelected} onChange={() => toggleRow(row.id)} className="w-5 h-5 accent-red-600" />
                     ) : col.type === "switch" ? (
                       <label className="relative inline-flex items-center cursor-pointer">
                         <input type="checkbox" checked={!!row.active} onChange={() => toggleActive(row.id)} className="sr-only peer" />
                         <div className="w-11 h-6 bg-gray-400 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-[4px] after:bg-black after:border after:rounded-full after:h-5 after:w-5 after:transition-transform peer-checked:bg-[#a01217]"></div>
                       </label>
                     ) : col.type === "action" ? (
-
                       <div className="flex gap-2">
-
                         {actions.view && (
                           <button
                             onClick={() => actionHandlers?.onView?.(row.id)}
@@ -217,7 +232,6 @@ export default function DynamicTable({
                             {actionIcons?.icon1 ?? <FaEye className="w-5 h-5" />}
                           </button>
                         )}
-
                         {actions.accept && (
                           <button
                             onClick={() => actionHandlers?.onAccept?.(row.id)}
@@ -226,7 +240,6 @@ export default function DynamicTable({
                             {actionIcons?.icon2 ?? <FaEdit className="w-5 h-5" />}
                           </button>
                         )}
-
                         {actions.cancel && (
                           <button
                             onClick={() => actionHandlers?.onCancel?.(row.id)}

@@ -87,6 +87,7 @@ export default function RolesPage() {
   };
 
   // Handle add or update role form submission
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleAddOrUpdateRole = async (formData: { [key: string]: any }) => {
     const { 'role name': role_name, description } = formData;
 

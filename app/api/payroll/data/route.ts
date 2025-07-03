@@ -54,16 +54,19 @@ export async function GET(req: NextRequest) {
   }
 
   // 3. Process payroll for each employee
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const result = filteredEmployees.map((emp: any) => {
     const empName = `${emp.first_name} ${emp.last_name}`;
 
     // If the employee has multiple roles, use the highest hourly rate
     const rates = (emp.employee_roles ?? [])
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
       .map((er: any) => Number(er.roles?.hourly_rate ?? 0))
       .filter((rate: number) => !isNaN(rate));
     const rate = rates.length > 0 ? Math.max(...rates) : 0;
 
     // Filter attendance entries for this employee
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const entries = (attendance ?? []).filter((a: any) => a.employee_id === emp.employee_id);
 
     let totalHours = 0;

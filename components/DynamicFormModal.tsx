@@ -12,6 +12,7 @@ interface DynamicFormModalProps {
   onClose: () => void;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   onSubmit: (data: Record<string, any>) => void;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   initialData?: Record<string, any> | null;
 }
 
@@ -31,6 +32,7 @@ export default function DynamicFormModal({
   initialData,
 }: DynamicFormModalProps) {
   const modalRef = useRef<HTMLDivElement>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [formData, setFormData] = useState<Record<string, any>>({});
 
   useEffect(() => {
@@ -110,6 +112,7 @@ export default function DynamicFormModal({
                   isMulti
                   options={field.options}
                   value={field.options?.filter(opt => (formData[field.name] || []).includes(opt.value))}
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
                   onChange={selected => handleChange(field.name, selected ? selected.map((opt: any) => opt.value) : [])}
                   classNamePrefix="tw-select"
                   placeholder="Select one or more roles"
