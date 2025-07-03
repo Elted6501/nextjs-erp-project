@@ -156,6 +156,7 @@ export default function InventoryPage() {
     setSupplierApiList */
   )
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleSubmitProduct = async (formData: any) => {
     console.log("Form submitted with:", formData);
     try {

@@ -103,6 +103,7 @@ export async function POST(request: Request) {
 }
 
 // Función para manejar la creación de productos
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function handleProductCreation(productData: any) {
   const supabase = await createClient();
 

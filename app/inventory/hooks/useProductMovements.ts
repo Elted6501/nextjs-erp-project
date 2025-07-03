@@ -93,6 +93,7 @@ useEffect(() => {
   fetch('/api/inventory/warehouses')
     .then(res => res.json())
     .then(data => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const options = data.map((item: any) => ({
         label: item.name,
         value: item.warehouse_id.toString()
@@ -104,6 +105,7 @@ useEffect(() => {
   fetch('/api/inventory/suppliers')
     .then(res => res.json())
     .then(data => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const options = data.map((item: any) => ({
         label: item.name,
         value: item.supplier_id.toString()
@@ -115,6 +117,7 @@ useEffect(() => {
   fetch('/api/inventory/categories')
     .then(res => res.json())
     .then(data => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const options = data.map((item: any) => ({
         label: item.name,
         value: item.category_id.toString()
