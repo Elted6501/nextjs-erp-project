@@ -1,3 +1,4 @@
+'use client'
 import { Mechanic } from "@/Types/Maintenance/schedule";
 
 type MechanicsScheduleType = {
