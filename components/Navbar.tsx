@@ -2,28 +2,12 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import ClockButton from '@/app/human-resources/attendance/ClockButton';
-import { useEffect, useState } from 'react';
 
 export default function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
   const paths = pathname.split('/').filter((segment) => segment);
 
-  const [employeeId, setEmployeeId] = useState<string | null>(null);
-
-  useEffect(() => {
-    fetch('/api/human-resources/attendance')
-      .then(res => res.ok ? res.json() : null)
-      .then(data => {
-        if (data && data.employee_id) {
-          setEmployeeId(String(data.employee_id));
-        } else {
-          setEmployeeId(null);
-        }
-      })
-      .catch(() => setEmployeeId(null));
-  }, []);
 
   const handleLogout = () => {
     // Limpia el token/cookie aquí si es necesario
@@ -59,7 +43,6 @@ export default function Navbar() {
         })}
       </div>
       <div className="flex items-center gap-4">
-        {employeeId && <ClockButton employeeId={employeeId} />}
         <button
           onClick={handleLogout}
           className="font-semibold hover:underline text-white bg-transparent border-none p-0 m-0 cursor-pointer"
