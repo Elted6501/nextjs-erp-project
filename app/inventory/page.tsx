@@ -11,7 +11,6 @@ import { FaSearch } from "react-icons/fa";
 import DynamicFormModal from '@/components/DynamicFormModal';
 import { Field } from '@/components/DynamicFormModal';
 import { useProductMovements } from './hooks/useProductMovements';
-import EntryRegistrationModal from '@/components/EntryRegistrationModal';
 
 const columns = [
   { key: 'select', label: '', type: 'checkbox' },
@@ -26,8 +25,6 @@ const columns = [
   { key: 'active', label: 'Active', type: 'switch' },
 ];
 
-
-
 export default function InventoryPage() {
 
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -37,17 +34,9 @@ export default function InventoryPage() {
   const [suppliersList, setSuppliersList] = useState<Option[]>([]);
   const [productTypeList, setProductTypeList] = useState<Option[]>([]);
 
-  const [warehouseOptions, setWarehouseOptions] = useState<{label: string, value: string}[]>([]);
-  const [supplierOptions, setSupplierOptions] = useState<{label: string, value: string}[]>([]);
-  const [categoryOptions, setCategoryOptions] = useState<{label: string, value: string}[]>([]);
-
   const [selectedWarehouse, setSelectedWarehouse] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedSupplier, setSelectedSupplier] = useState<string | null>(null);
-
-  /* const [warehouseApiList, setWarehouseApiList] = useState<string[] | null>(null);
-  const [categoryApiList, setCategoryApiList] = useState<string[] | null>(null);
-  const [supplierApiList, setSupplierApiList] = useState<string[] | null>(null); */
 
   const [showAlertDialog, setShowAlertDialog] = useState(false);
   const [showRemove, setShowRemove] = useState(false);
@@ -59,7 +48,6 @@ export default function InventoryPage() {
   const [inputValue, setInputValue] = useState<string>('');
   const [filteredData, setFilteredData] = useState<FilteredProducts[]>([]);
   const [filteredByDropdown, setFilteredByDropdown] = useState<FilteredProducts[]>([]);
-  const [showEntryModal, setShowEntryModal] = useState(false);
 
   interface FilteredProducts {
     select: boolean;
@@ -91,37 +79,10 @@ export default function InventoryPage() {
     { name: 'name', label: 'Name', type: 'text' },
     { name: 'description', label: 'Description', type: 'text' },
     { name: 'brand', label: 'Brand', type: 'text' },
-    { 
-      name: 'warehouse_id', 
-      label: 'Warehouse', 
-      type: 'select', 
-      options: warehouseOptions,
-      displayValue: 'name' // Esto es para mostrar el nombre pero guardar el ID
-    },
-    { 
-      name: 'supplier_id', 
-      label: 'Supplier', 
-      type: 'select', 
-      options: supplierOptions,
-      displayValue: 'name'
-    },
-    { 
-      name: 'category_id', 
-      label: 'Type', 
-      type: 'select', 
-      options: categoryOptions,
-      displayValue: 'name'
-    },
-    { 
-      name: 'measure_unit', 
-      label: 'Measure Unit', 
-      type: 'select', 
-      options: [
-        { label: 'piece', value: 'piece' }, 
-        { label: 'liter', value: 'liter' }, 
-        { label: 'kg', value: 'kg' }
-      ] 
-    },
+    { name: 'warehouse_name', label: 'Warehouse', type: 'select', options: warehouseList },
+    { name: 'supplier_name', label: 'Supplier', type: 'select', options: suppliersList },
+    { name: 'category_name', label: 'Type', type: 'select', options: productTypeList },
+    { name: 'measure_unit', label: 'Measure Unit', type: 'select', options: [{ label: 'piece', value: 'piece' }, { label: 'liter', value: 'liter' }, { label: 'kg', value: 'kg' }] },
     { name: 'cost_price', label: 'Cost Price', type: 'number' },
     { name: 'sale_price', label: 'Sale Price', type: 'number' },
     { name: 'stock', label: 'Quantity', type: 'number' },
@@ -147,38 +108,8 @@ export default function InventoryPage() {
     productState,
     shouldDelete,
     setSelectedIds,
-    setShouldDelete,
-    setWarehouseOptions,
-    setSupplierOptions,
-    setCategoryOptions
-    /* setWarehouseApiList,
-    setCategoryApiList,
-    setSupplierApiList */
+    setShouldDelete
   )
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const handleSubmitProduct = async (formData: any) => {
-    console.log("Form submitted with:", formData);
-    try {
-      const response = await fetch('/api/inventory/products', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
-      });
-      
-      const result = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(result.error || 'Error al guardar el producto');
-      }
-      
-      alert('¡Producto registrado exitosamente!');
-      setShowProductModal(false);
-    } catch (error) {
-      console.error('Error saving product:', error);
-      alert(`Error: ${error instanceof Error ? error.message : 'Error desconocido'}`);
-    }
-  };
   
   return (
     <div className="flex">
@@ -191,10 +122,7 @@ export default function InventoryPage() {
                 title='alerta'
                 icon={<GoAlertFill className="w-10 h-10" />}
                 content='¿Está seguro que quiere eliminar el siguiente producto de la base de datos?'
-                onSuccess={() => {
-                  setShouldDelete(true);
-                  setShowAlertDialog(false);
-                }}
+                onSuccess={() => setShouldDelete(true)}
                 onCancel={() => setShowAlertDialog(false)}
               />
             )
@@ -255,7 +183,7 @@ export default function InventoryPage() {
               onClick={() => { }}
             />
           </div>
-         </div> 
+        </div>
 
         <DynamicTable
           data={filteredData}
@@ -276,11 +204,8 @@ export default function InventoryPage() {
             />
           )}
           <Button label="Register product" onClick={() => setShowProductModal(true)} />
-          <Button label="Register entry" onClick={() => setShowEntryModal(true)} />
-          {/*
+          <Button label="Register entry" onClick={() => alert('Register entry')} />
           <Button label="Change warehouse" onClick={() => alert('Change warehouse')} />
-            */}
-            
         </div>
         {showProductModal && (
           <DynamicFormModal
@@ -288,37 +213,9 @@ export default function InventoryPage() {
             isOpen={showProductModal}
             onClose={() => setShowProductModal(false)}
             fields={productFields}
-            onSubmit={handleSubmitProduct}
-          />
-        )}
-        {showEntryModal && (
-          <EntryRegistrationModal
-            isOpen={showEntryModal}
-            onClose={() => setShowEntryModal(false)}
-            onSave={async (products) => {
-              try {
-                const response = await fetch('/api/inventory/products', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify(products),
-                });
-                
-                const result = await response.json();
-                if (!response.ok) throw new Error(result.error);
-                
-                // Refrescar la lista de productos
-                //fetchProducts();
-                
-                alert(`Entrada registrada exitosamente (${result.entryNumber})`);
-              } catch (error) {
-                console.error('Error:', error);
-                alert('Error al registrar la entrada');
-              }
+            onSubmit={(data) => {
+              console.log("Form submitted with:", data);
             }}
-            products={tableData.map(item => ({
-              id: Number(item.product_id),  // Convert string to number
-              name: item.name
-            }))}
           />
         )}
       </div>
