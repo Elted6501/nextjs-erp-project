@@ -191,7 +191,7 @@ export default function DynamicTable({
 
                         {actions.accept && (
                           <button
-                            onClick={() => actionHandlers?.onEdit?.(row.id)}
+                            onClick={() => actionHandlers?.onAccept?.(row.id)}
                             className="p-2 text-[#a01217] bg-[#a0121722] rounded-full hover:bg-[#a0121744]"
                           >
                             {actionIcons?.icon2 ?? <FaEdit className="w-5 h-5" />}

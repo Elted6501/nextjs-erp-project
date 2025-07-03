@@ -15,19 +15,22 @@ export async function GET() {
 export async function PUT(request: Request) {
   const supabase = await createClient();
   const body = await request.json();
-  const {id, status} = body;
+  const {invoice_id, status} = body;
 
-  if(!id){
+  if(!invoice_id) {
     return NextResponse.json({ error: "Invoice ID is required" }, { status: 400 });
   }
   
-  const allowedStatuses = ["Issued", "Expired"];
+  const allowedStatuses = ["Issued", "In progress"];
 
   if (status && !allowedStatuses.includes(status)) {
     return NextResponse.json({ error: "Invalid invoice status" }, { status: 400 });
   }
 
-  const { data, error } = await supabase.from("invoices").update({status}).eq("invoice_id", body.id);
+  const { error } = await supabase.rpc('update_invoices_status', {
+    invoice_id: invoice_id,
+    option: status
+  })
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
@@ -35,6 +38,5 @@ export async function PUT(request: Request) {
 
   return NextResponse.json({
     message: "Invoice updated successfully",
-    data,
    });
 }

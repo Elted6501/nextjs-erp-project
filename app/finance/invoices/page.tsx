@@ -45,8 +45,9 @@ type InvoiceData = {
 export default function FinancePage() {
   const [invoices, setInvoices] = useState<InvoiceData[]>([]);
   const [filteredData, setFilteredData] = useState<InvoiceData[]>([]);
-  const [status, setStatus] = useState("");
+  const [newStatus, setNewStatus] = useState("");
   const [description, setDescription] = useState("");
+  const [handlerFetch, setHandlerFetch] = useState(true);
 
   useEffect(() => {
     fetch("/api/finance/invoices")
@@ -78,7 +79,7 @@ export default function FinancePage() {
       .catch((error) => {
         console.error("Error fetching invoices:", error);
       });
-  }, []);
+  }, [newStatus, description, handlerFetch]);
 
   const handleExportExcel = async () => {
     const sheetName = "Invoices Report";
@@ -128,14 +129,14 @@ export default function FinancePage() {
   };
 
   const handleStatusSelect = (value: string) => {
-    setStatus(value);
+    setNewStatus(value);
   };
 
   useEffect(() => {
     let data = invoices;
 
-    if (status) {
-      data = data.filter((item) => item.invoice_status.includes(status));
+    if (newStatus) {
+      data = data.filter((item) => item.invoice_status.includes(newStatus));
     }
 
     if (description) {
@@ -143,14 +144,36 @@ export default function FinancePage() {
     }
 
     setFilteredData(data);
-  }, [status, description, invoices]);
+  }, [newStatus, description, invoices]);
+
+  const handleUpdateStatus = (invoice_id: string, status: string) => {
+    fetch("/api/finance/invoices", {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ invoice_id, status }),
+    })
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error("Failed to update invoice status");
+        }
+
+        setHandlerFetch(!handlerFetch);
+        return response.json();
+      })
+      .catch((error) => {
+        console.error("Error updating invoice status:", error);
+        alert("Failed to update invoices status");
+      });
+  };
 
   return (
     <main className={`${styles.div_principal}`}>
       <div className={`${styles.div_principal_top} flex gap-2 mb-6 items-center`}>
         <div className={`${styles.div_busqueda} gap-y-3 flex items-center w-full`}>
           <label className="text-2xl text-[#8b0f14] font-bold" style={{ alignSelf: "flex-start" }}>
-            Orders
+            Invoices
           </label>
           <div className={"{$styles.div_hijo_busqueda} flex justify-between items-center w-full"}>
             <div className="flex gap-4 items-center w-full max-w-4xl">
@@ -160,11 +183,11 @@ export default function FinancePage() {
                 className="w-[400px] px-4 border rounded-lg focus:outline-none focus:ring-2 bg-white border-[#a01217] focus:ring-[#a01217] text-black h-[37px]"
                 value={description}
                 onFocus={() => {
-                  setStatus("");
+                  setNewStatus("");
                 }}
                 onChange={(e) => setDescription(e.target.value)}
               />
-              <Dropdown options={INVOICE_STATUS_OPTIONS} onSelect={handleStatusSelect} placeholder={status === "" ? "Select status" : status} />
+              <Dropdown options={INVOICE_STATUS_OPTIONS} onSelect={handleStatusSelect} placeholder={newStatus === "" ? "Select status" : newStatus} />
             </div>
             <div>
               <Button
@@ -183,8 +206,16 @@ export default function FinancePage() {
       </div>
 
       <DynamicTable
-        data={status || description ? filteredData : invoices}
+        data={newStatus || description ? filteredData : invoices}
         columns={columns}
+        actionHandlers={{
+          onView: (id: string) => {
+            handleUpdateStatus(id, "In progress");
+          },
+          onAccept: (id: string) => {
+            handleUpdateStatus(id, "Issued");
+          },
+        }}
         actionIcons={{
           icon1: <FaArrowRight className="w-5 h-5" />,
           icon2: <FaClipboardCheck className="w-5 h-5" />,

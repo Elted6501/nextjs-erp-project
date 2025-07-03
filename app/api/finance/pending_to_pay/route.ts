@@ -15,19 +15,22 @@ export async function GET() {
 export async function PUT(request: Request) {
   const supabase = await createClient();
   const body = await request.json();
-  const {id, status} = body;
+  const {payable_id, status} = body;
 
-  if(!id){
+  if(!payable_id){
     return NextResponse.json({ error: "Payable ID is required" }, { status: 400 });
   }
   
   const allowedStatuses = ["Paid", "Expired"];
 
   if (status && !allowedStatuses.includes(status)) {
-    return NextResponse.json({ error: "Invalid payable status" }, { status: 400 });
+    return NextResponse.json({ error: "Invalid payment status" }, { status: 400 });
   }
 
-  const { data, error } = await supabase.from("pending_to_pay").update({status}).eq("payable_id", body.id);
+  const { error } = await supabase.rpc('update_pending_to_pay_status', {
+    payable_id: payable_id,
+    option: status
+  })
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
@@ -35,6 +38,5 @@ export async function PUT(request: Request) {
 
   return NextResponse.json({
     message: "Payment updated successfully",
-    data,
    });
 }

@@ -33,8 +33,9 @@ type OrderData = {
 export default function OrdersPage() {
   const [orders, setOrders] = useState<OrderData[]>([]);
   const [filteredData, setFilteredData] = useState<OrderData[]>([]);
-  const [status, setStatus] = useState("");
+  const [newStatus, setNewStatus] = useState("");
   const [description, setDescription] = useState("");
+  const [handlerFetch, setHandlerFetch] = useState(true);
 
   useEffect(() => {
     fetch("/api/finance/orders")
@@ -56,7 +57,7 @@ export default function OrdersPage() {
       .catch((error) => {
         console.error("Error fetching orders:", error);
       });
-  }, [status, description]);
+  }, [newStatus, description, handlerFetch]);
 
   const handleExportExcel = async () => {
     const sheetName = "Orders Report";
@@ -90,8 +91,8 @@ export default function OrdersPage() {
   useEffect(() => {
     let data = orders;
 
-    if (status) {
-      data = data.filter((item) => item.status.includes(status));
+    if (newStatus) {
+      data = data.filter((item) => item.status.includes(newStatus));
     }
     if (description) {
       const dataId = data.filter((item) => item.id.toString().includes(description.toString()));
@@ -100,11 +101,33 @@ export default function OrdersPage() {
     }
 
     setFilteredData(data);
-  }, [status, description, orders]);
+  }, [newStatus, description, orders]);
 
   const handleStatusSelect = (value: string) => {
     setDescription("");
-    setStatus(value);
+    setNewStatus(value);
+  };
+
+  const handleUpdateStatus = (order_id: string, status: string) => {
+    fetch("/api/finance/orders/", {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ order_id, status }),
+    })
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error("Failed to update order status");
+        }
+
+        setHandlerFetch(!handlerFetch);
+        return response.json();
+      })
+      .catch((error) => {
+        console.error("Error updating order status:", error);
+        alert("Failed to update order status");
+      });
   };
 
   return (
@@ -114,39 +137,47 @@ export default function OrdersPage() {
           <label className="text-2xl text-[#8b0f14] font-bold" style={{ alignSelf: "flex-start" }}>
             Orders
           </label>
-          <div className={'{$styles.div_hijo_busqueda} flex justify-between items-center w-full'} >
+          <div className={"{$styles.div_hijo_busqueda} flex justify-between items-center w-full"}>
             <div className="flex gap-4 items-center w-full max-w-4xl">
-            <input
-              type="text"
-              placeholder="Search by Order ID or Client name"
-              className="w-[400px] px-4 border rounded-lg focus:outline-none focus:ring-2 bg-white border-[#a01217] focus:ring-[#a01217] text-black h-[37px]"
-              value={description}
-              onFocus={() => {
-                setStatus("");
-              }}
-              onChange={(e) => setDescription(e.target.value)}
-            />
-            <Dropdown options={ORDER_STATUS_OPTIONS} onSelect={handleStatusSelect} placeholder={status === "" ? "Select status" : status} />
+              <input
+                type="text"
+                placeholder="Search by Order ID or Client name"
+                className="w-[400px] px-4 border rounded-lg focus:outline-none focus:ring-2 bg-white border-[#a01217] focus:ring-[#a01217] text-black h-[37px]"
+                value={description}
+                onFocus={() => {
+                  setNewStatus("");
+                }}
+                onChange={(e) => setDescription(e.target.value)}
+              />
+              <Dropdown options={ORDER_STATUS_OPTIONS} onSelect={handleStatusSelect} placeholder={newStatus === "" ? "Select status" : newStatus} />
             </div>
             <div>
-            <Button
-              label={
-                <div className="flex items-center justify-center gap-2 w-full h-full">
-                  <FaFileExcel className="w-4 h-4" />
-                  <span>Excel</span>
-                </div>
-              }
-              className="bg-[#a01217] text-white hover:bg-[#8b0f14] transition-colors px-4 h-[37px] rounded-lg flex items-center justify-center"
-              onClick={handleExportExcel}
-            />
+              <Button
+                label={
+                  <div className="flex items-center justify-center gap-2 w-full h-full">
+                    <FaFileExcel className="w-4 h-4" />
+                    <span>Excel</span>
+                  </div>
+                }
+                className="bg-[#a01217] text-white hover:bg-[#8b0f14] transition-colors px-4 h-[37px] rounded-lg flex items-center justify-center"
+                onClick={handleExportExcel}
+              />
             </div>
           </div>
         </div>
       </div>
 
       <DynamicTable
-        data={status || description ? filteredData : orders}
+        data={newStatus || description ? filteredData : orders}
         columns={columns}
+        actionHandlers={{
+          onAccept: (id: string) => {
+            handleUpdateStatus(id, "Confirmed");
+          },
+          onCancel: (id: string) => {
+            handleUpdateStatus(id, "Cancelled");
+          },
+        }}
         actionIcons={{
           icon2: <FaCheck className="w-5 h-5" />,
           icon3: <FaTimes className="w-5 h-5" />,

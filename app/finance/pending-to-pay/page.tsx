@@ -16,20 +16,21 @@ type PendingToPayData = {
   PayDate: string;
 };
 
-const ORDER_STATUS_OPTIONS = [
+const PE_STATUS_OPTIONS = [
   { label: "Unpaid", value: "Unpaid" },
   { label: "Paid", value: "Paid" },
   { label: "Cancelled", value: "Cancelled" },
   { label: "Expired", value: "Expired" },
 ];
 
-const ORDER_DATE_OPTIONS = [
+const  PENDING_DATE_OPTIONS = [
   { label: "Close to due date", value: "Cloese to due date" },
   { label: "Close to pay date", value: "Close to pay date" },
 ];
 
 const TABLE_COLUMNS = [
-  { key: "OrderId", label: "Order Id", type: "text" },
+  { key: "id", label: "Payable ID", type: "text" },
+  { key: "OrderId", label: "Order ID", type: "text"},
   { key: "Products", label: "Products", type: "text" },
   { key: "Status", label: "Status", type: "text" },
   { key: "DueDate", label: "Due Date", type: "text" },
@@ -41,9 +42,10 @@ export default function PendingToPayPage() {
   // const router = useRouter();
   const [pendingToPay, setPendingToPay] = useState<PendingToPayData[]>([]);
   const [filteredData, setFilteredData] = useState<PendingToPayData[]>([]);
-  const [status, setStatus] = useState("");
+  const [newStatus, setNewStatus] = useState("");
   const [description, setDescription] = useState("");
   const [date, setDate] = useState("");
+  const [handlerFetch, setHandlerFetch] = useState(true);
 
   useEffect(() => {
     fetch("/api/finance/pending_to_pay")
@@ -64,7 +66,7 @@ export default function PendingToPayPage() {
       .catch((error) => {
         console.error("Error fetching pending to pay data:", error);
       });
-  }, [status, description]);
+  }, [newStatus, description, handlerFetch]);
 
   const handleExportExcel = async () => {
     const sheetName = "Pending to pay";
@@ -96,28 +98,48 @@ export default function PendingToPayPage() {
   useEffect(() => {
     let data = pendingToPay;
 
-    if (status) {
-      data = data.filter((item) => item.Status.includes(status));
+    if (newStatus) {
+      data = data.filter((item) => item.Status.includes(newStatus));
     }
     if (description) {
       data = data.filter((item) => item.OrderId.toString().includes(description.toString()));
     }
 
     setFilteredData(data);
-  }, [status, description, date, pendingToPay]);
+  }, [newStatus, description, date, pendingToPay]);
 
   const handleStatusSelect = (value: string) => {
     setDescription("");
     setDate("");
-    setStatus(value);
+    setNewStatus(value);
   };
 
   const handleDateSelect = (value: string) => {
     setDescription("");
-    setStatus("");
+    setNewStatus("");
     setDate(value);
   };
+  const handleUpdateStatus = (payable_id: string, status: string) => {
+    fetch("/api/finance/pending_to_pay", {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ payable_id, status }),
+    })
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error("Failed to update payment status");
+        }
 
+        setHandlerFetch(!handlerFetch);
+        return response.json();
+      })
+      .catch((error) => {
+        console.error("Error updating payment status:", error);
+        alert("Failed to update payment status");
+      });
+  };
   return (
     <main className={styles.div_principal}>
       <div className={`${styles.div_principal_top} flex gap-2 mb-6 items-center`}>
@@ -133,12 +155,12 @@ export default function PendingToPayPage() {
                 className="w-[300px] px-4 border rounded-lg focus:outline-none focus:ring-2 bg-white border-[#a01217] focus:ring-[#a01217] text-black h-[37px]"
                 value={description}
                 onFocus={() => {
-                  setStatus("");
+                  setNewStatus("");
                 }}
                 onChange={(e) => setDescription(e.target.value)}
               />
-              <Dropdown options={ORDER_STATUS_OPTIONS} onSelect={handleStatusSelect} placeholder={status === "" ? "Select status" : status} />
-              <Dropdown options={ORDER_DATE_OPTIONS} onSelect={handleDateSelect} placeholder={date === "" ? "Select type date" : date} />
+              <Dropdown options={PE_STATUS_OPTIONS} onSelect={handleStatusSelect} placeholder={newStatus === "" ? "Select status" : newStatus} />
+              <Dropdown options={PENDING_DATE_OPTIONS} onSelect={handleDateSelect} placeholder={date === "" ? "Select type date" : date} />
             </div>
             <div>
               <Button
@@ -157,8 +179,16 @@ export default function PendingToPayPage() {
       </div>
 
       <DynamicTable
-        data={status || description || date ? filteredData : pendingToPay}
+        data={newStatus || description || date ? filteredData : pendingToPay}
         columns={TABLE_COLUMNS}
+        actionHandlers={{
+          onAccept: (id: string) => {
+            handleUpdateStatus(id, "Paid");
+          },
+          onCancel: (id: string) => {
+            handleUpdateStatus(id, "Expired");
+          },
+        }}
         actionIcons={{
           icon2: <FaMoneyBill className="w-5 h-5" />,
           icon3: <FaRegCalendarTimes className="w-5 h-5" />,
