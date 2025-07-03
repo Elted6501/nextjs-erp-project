@@ -47,7 +47,7 @@ export async function createAdminClient() {
                     try {
                         cookieStore.set({ name, value, ...options });
                         
-                    } catch (error) {
+                    } catch {
                         // Handle error if needed
                     }
                 },
