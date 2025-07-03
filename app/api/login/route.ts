@@ -34,13 +34,21 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ mustChangePassword: true, userId: data.employee_id });
     }
 
+    // Obtén todos los roles del usuario
+    const { data: rolesData, error: rolesError } = await supabase
+      .from("employee_roles")
+      .select("role_id")
+      .eq("employee_id", data.employee_id);
+
+    const role_ids = rolesData ? rolesData.map(r => r.role_id) : [];
+
     const token = jwt.sign(
       {
         employee_id: data.employee_id,
         email: data.email,
         first_name: data.first_name,
         last_name: data.last_name,
-        role_id: data.role_id,
+        role_ids, // ahora es un array
       },
       JWT_SECRET,
       { expiresIn: "2h" }

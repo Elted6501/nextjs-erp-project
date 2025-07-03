@@ -14,52 +14,65 @@ export async function GET() {
   }
 
   try {
-    const decoded = jwt.verify(token, JWT_SECRET) as { role_id: number };
-    const { role_id } = decoded;
+    // Cambia aquí: decodifica el user_id del token
+    const decoded = jwt.verify(token, JWT_SECRET) as { employee_id: string };
+    const { employee_id } = decoded;
     const supabase = await createClient();
 
-    if (role_id === 1) {
-       // Admin role, return all permissions
-       const { data: allPermissions, error: allPermissionsError } = await supabase
-           .from("permissions")
-           .select("permission_key");
+    // 1. Obtén todos los roles del usuario
+    const { data: rolesData, error: rolesError } = await supabase
+      .from("employee_roles")
+      .select("role_id")
+      .eq("employee_id", employee_id);
 
-       if (allPermissionsError) {
-           return NextResponse.json([]);
-       }
-       const permissionKeys = allPermissions.map(p => p.permission_key);
-       return NextResponse.json(permissionKeys);
-   }
+    if (rolesError || !rolesData || rolesData.length === 0) {
+      return NextResponse.json([]);
+    }
 
-   // Get all permission IDs for the role
-   const { data: permissionIdsData, error: permissionIdsError } = await supabase
-       .from("role_permissions")
-       .select("permission_id")
-       .eq("role_id", role_id);
+    const roleIds = rolesData.map(r => r.role_id);
 
-   if (permissionIdsError) {
-       return NextResponse.json([]);
-   }
+    // Si es admin (role_id === 1), devuelve todos los permisos
+    if (roleIds.includes(1)) {
+      const { data: allPermissions, error: allPermissionsError } = await supabase
+        .from("permissions")
+        .select("permission_key");
 
-   const permissionIds = permissionIdsData.map(p => p.permission_id);
+      if (allPermissionsError) {
+        return NextResponse.json([]);
+      }
+      const permissionKeys = allPermissions.map(p => p.permission_key);
+      return NextResponse.json(permissionKeys);
+    }
 
-   if (permissionIds.length === 0) {
-       return NextResponse.json([]);
-   }
+    // 2. Obtén todos los permission_id para esos roles
+    const { data: permissionIdsData, error: permissionIdsError } = await supabase
+      .from("role_permissions")
+      .select("permission_id")
+      .in("role_id", roleIds);
 
-   // Get permission keys from the permissions table
-   const { data: permissionsData, error: permissionsError } = await supabase
-       .from("permissions")
-       .select("permission_key")
-       .in("permission_id", permissionIds);
+    if (permissionIdsError || !permissionIdsData || permissionIdsData.length === 0) {
+      return NextResponse.json([]);
+    }
 
-   if (permissionsError) {
-       return NextResponse.json([]);
-   }
+    const permissionIds = permissionIdsData.map(p => p.permission_id);
 
-   const permissionKeys = permissionsData.map(p => p.permission_key);
+    if (permissionIds.length === 0) {
+      return NextResponse.json([]);
+    }
 
-   return NextResponse.json(permissionKeys);
+    // 3. Obtén los permission_key de esos permission_id
+    const { data: permissionsData, error: permissionsError } = await supabase
+      .from("permissions")
+      .select("permission_key")
+      .in("permission_id", permissionIds);
+
+    if (permissionsError) {
+      return NextResponse.json([]);
+    }
+
+    const permissionKeys = permissionsData.map(p => p.permission_key);
+
+    return NextResponse.json(permissionKeys);
   } catch {
     return NextResponse.json([]);
   }

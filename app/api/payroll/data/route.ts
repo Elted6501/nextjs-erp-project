@@ -12,28 +12,30 @@ export async function GET(req: NextRequest) {
 
   const supabase = await createClient();
 
-  // 1. Fetch all employees except administrators
+  // 1. Trae empleados y sus roles
   const { data: employees, error: empError } = await supabase
     .from('employees')
-    .select('employee_id, first_name, last_name, role_id')
-    .neq('role_id', 1);
+    .select(`
+      employee_id,
+      first_name,
+      last_name,
+      employee_roles (
+        role_id,
+        roles (
+          hourly_rate
+        )
+      )
+    `);
 
   if (empError) {
     console.error('Error fetching employees:', empError);
     return NextResponse.json({ error: 'Failed to fetch employees' }, { status: 500 });
   }
 
-  // 2. Fetch roles to get hourly rates
-  const { data: roles, error: rolesError } = await supabase
-    .from('roles')
-    .select('role_id, hourly_rate');
+  // No excluir a ningún empleado
+  const filteredEmployees = employees ?? [];
 
-  if (rolesError) {
-    console.error('Error fetching roles:', rolesError);
-    return NextResponse.json({ error: 'Failed to fetch roles' }, { status: 500 });
-  }
-
-  // 3. Fetch attendance records for the given date range
+  // 2. Trae asistencias en el rango de fechas
   const { data: attendance, error: attError } = await supabase
     .from('attendance')
     .select('employee_id, clock_in, clock_out, date')
@@ -45,17 +47,20 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Failed to fetch attendance' }, { status: 500 });
   }
 
-  // 4. Process payroll data for each employee
-  const result = employees.map((emp) => {
+  // 3. Procesa la nómina
+  const result = filteredEmployees.map((emp: any) => {
     const empName = `${emp.first_name} ${emp.last_name}`;
-    const role = roles.find((r) => r.role_id === emp.role_id);
-    const rate = Number(role?.hourly_rate ?? 0);
 
-    // Filter attendance entries for the employee
-    const entries = attendance.filter((a) => a.employee_id === emp.employee_id);
+    // Si el empleado tiene varios roles, toma el mayor rate
+    const rates = (emp.employee_roles ?? [])
+      .map((er: any) => Number(er.roles?.hourly_rate ?? 0))
+      .filter((rate: number) => !isNaN(rate));
+    const rate = rates.length > 0 ? Math.max(...rates) : 0;
+
+    // Filtra asistencias del empleado
+    const entries = (attendance ?? []).filter((a: any) => a.employee_id === emp.employee_id);
 
     let totalHours = 0;
-
     for (const entry of entries) {
       if (entry.clock_in && entry.clock_out) {
         const inTime = new Date(`1970-01-01T${entry.clock_in}`);
@@ -76,7 +81,7 @@ export async function GET(req: NextRequest) {
       name: empName,
       baseSalary: baseSalary.toFixed(2),
       deductions: deductions.toFixed(2),
-      workedHours: totalHours.toFixed(2), // <-- Added workedHours
+      workedHours: totalHours.toFixed(2),
     };
   });
 

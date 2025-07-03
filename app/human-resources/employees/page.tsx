@@ -20,9 +20,9 @@ interface Employee {
   scheduleStart: string;
   scheduleEnd: string;
   active: boolean;
-  roleId?: string;
-  roleName?: string;
-  [key: string]: undefined | string | boolean;
+  roleIds?: string[];
+  roleNames?: string[];
+  [key: string]: undefined | string | boolean | string[];
 }
 
 interface RawEmployee {
@@ -36,12 +36,12 @@ interface RawEmployee {
   employee_schedule_start: string;
   employee_schedule_end: string;
   active?: boolean;
-  role_id?: string;
-  role_name?: string;
+  role_ids?: string[];
+  role_names?: string[];
 }
 
 interface EmployeeFormData {
-  [key: string]: string | boolean | undefined;
+  [key: string]: string | boolean | undefined | string[];
 }
 
 interface RoleOption {
@@ -59,9 +59,29 @@ export default function EmployeesPage() {
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
   const [showAlert, setShowAlert] = useState(false);
   const [roles, setRoles] = useState<RoleOption[]>([]);
-  const [searchText, setSearchText] = useState(''); // NUEVO
+  const [searchText, setSearchText] = useState('');
 
-  // Define los campos del formulario dinámicamente
+  // Nueva función para refrescar empleados
+  const fetchEmployees = async () => {
+    const res = await fetch('/api/human-resources/employees');
+    const data: RawEmployee[] = await res.json();
+    const mapped = data.map((emp) => ({
+      id: emp.employee_id,
+      fullName: `${emp.first_name} ${emp.last_name}`,
+      email: emp.email,
+      phoneNumber: emp.phone_number,
+      address: emp.address || '',
+      hireDate: emp.hire_date,
+      scheduleStart: emp.employee_schedule_start,
+      scheduleEnd: emp.employee_schedule_end,
+      active: !!emp.active,
+      roleIds: emp.role_ids || [],
+      roleNames: emp.role_names || [],
+    }));
+    setEmployees(mapped);
+  };
+
+  // Define form fields dynamically
   const fields: Field[] = fieldsData.map((item) => {
     const lower = item.toLowerCase();
     if (lower === 'birth date' || lower === 'hire date') {
@@ -71,7 +91,7 @@ export default function EmployeesPage() {
       return { name: lower, label: item, type: 'time' };
     }
     if (lower === 'role') {
-      return { name: 'role', label: 'Role', type: 'select', options: roles };
+      return { name: 'role', label: 'Roles', type: 'multiselect', options: roles };
     }
     return { name: lower, label: item, type: 'text' };
   });
@@ -84,26 +104,7 @@ export default function EmployeesPage() {
   ];
 
   useEffect(() => {
-    // Fetch empleados
-    fetch('/api/human-resources/employees')
-      .then((res) => res.json())
-      .then((data: RawEmployee[]) => {
-        const mapped = data.map((emp) => ({
-          id: emp.employee_id,
-          fullName: `${emp.first_name} ${emp.last_name}`,
-          email: emp.email,
-          phoneNumber: emp.phone_number,
-          address: emp.address || '',
-          hireDate: emp.hire_date,
-          scheduleStart: emp.employee_schedule_start,
-          scheduleEnd: emp.employee_schedule_end,
-          active: !!emp.active,
-          roleId: emp.role_id,
-          roleName: emp.role_name,
-        }));
-        setEmployees(mapped);
-      });
-
+    fetchEmployees();
     // Fetch roles
     fetch('/api/human-resources/roles')
       .then(res => res.json())
@@ -134,6 +135,26 @@ export default function EmployeesPage() {
       role,
     } = formData;
 
+    // Si es edición, mergea los roles actuales con los seleccionados si no se envió el campo role
+    let role_ids: string[] = [];
+    if (editingEmployee) {
+      if (typeof role === "undefined") {
+        role_ids = editingEmployee.roleIds || [];
+      } else {
+        role_ids = Array.isArray(role)
+          ? role.filter((r): r is string => typeof r === 'string')
+          : typeof role === 'string'
+            ? [role]
+            : [];
+      }
+    } else {
+      role_ids = Array.isArray(role)
+        ? role.filter((r): r is string => typeof r === 'string')
+        : role
+          ? [role].filter((r): r is string => typeof r === 'string')
+          : [];
+    }
+
     if (editingEmployee) {
       const res = await fetch(`/api/human-resources/employees/${editingEmployee.id}`, {
         method: 'PUT',
@@ -145,7 +166,7 @@ export default function EmployeesPage() {
           employee_schedule_start,
           employee_schedule_end,
           password,
-          role_id: role,
+          role_ids,
         }),
       });
 
@@ -154,23 +175,7 @@ export default function EmployeesPage() {
         return;
       }
 
-      const updatedEmployee: RawEmployee = await res.json();
-      setEmployees(prev =>
-        prev.map(emp =>
-          emp.id === editingEmployee.id
-            ? {
-                ...emp,
-                ...updatedEmployee,
-                fullName: `${updatedEmployee.first_name} ${updatedEmployee.last_name}`,
-                phoneNumber: updatedEmployee.phone_number,
-                scheduleStart: updatedEmployee.employee_schedule_start,
-                scheduleEnd: updatedEmployee.employee_schedule_end,
-                roleId: updatedEmployee.role_id,
-                roleName: updatedEmployee.role_name,
-              }
-            : emp
-        )
-      );
+      await fetchEmployees();
       setEditingEmployee(null);
     } else {
       const res = await fetch('/api/human-resources/employees', {
@@ -188,7 +193,7 @@ export default function EmployeesPage() {
           employee_schedule_start,
           employee_schedule_end,
           active: true,
-          role_id: role,
+          role_ids,
         }),
       });
 
@@ -197,23 +202,7 @@ export default function EmployeesPage() {
         return;
       }
 
-      const newEmployee: RawEmployee = await res.json();
-      setEmployees(prev => [
-        ...prev,
-        {
-          id: newEmployee.employee_id,
-          fullName: `${newEmployee.first_name} ${newEmployee.last_name}`,
-          email: newEmployee.email,
-          phoneNumber: newEmployee.phone_number,
-          address: newEmployee.address || '',
-          hireDate: newEmployee.hire_date,
-          scheduleStart: newEmployee.employee_schedule_start,
-          scheduleEnd: newEmployee.employee_schedule_end,
-          active: !!newEmployee.active,
-          roleId: newEmployee.role_id,
-          roleName: newEmployee.role_name,
-        },
-      ]);
+      await fetchEmployees();
     }
     setShowModal(false);
   };
@@ -232,8 +221,7 @@ export default function EmployeesPage() {
       return;
     }
 
-    const updatedEmployees = employees.filter(emp => !selectedIds.includes(emp.id));
-    setEmployees(updatedEmployees);
+    await fetchEmployees();
     setSelectedIds([]);
   };
 
@@ -253,23 +241,18 @@ export default function EmployeesPage() {
       return;
     }
 
-    setEmployees((prev) =>
-      prev.map((emp) => {
-        const found = activeStates.find((s) => s.id === emp.id);
-        return found ? { ...emp, active: found.active } : emp;
-      })
-    );
+    await fetchEmployees();
   };
 
-  // FILTRO: status + búsqueda
+  // FILTER: status + search
   const filteredEmployees = employees.filter(emp => {
-    // Filtro por status
+    // Status filter
     const statusOk =
       selectedStatus === 'all' ||
       (selectedStatus === 'active' && emp.active) ||
       (selectedStatus === 'inactive' && !emp.active);
 
-    // Filtro por texto de búsqueda
+    // Search filter
     const searchOk =
       searchText.trim() === '' ||
       emp.fullName?.toLowerCase().includes(searchText.toLowerCase()) ||
@@ -288,7 +271,7 @@ export default function EmployeesPage() {
     { key: 'hireDate', label: 'Hire Date', type: 'text' },
     { key: 'scheduleStart', label: 'Schedule Start', type: 'text' },
     { key: 'scheduleEnd', label: 'Schedule End', type: 'text' },
-    { key: 'roleName', label: 'Role', type: 'text' },
+    { key: 'roleNames', label: 'Roles', type: 'text' },
     { key: 'active', label: 'Status', type: 'switch' },
   ];
 
@@ -330,7 +313,7 @@ export default function EmployeesPage() {
           </div>
         </div>
 
-        {/* Modal fuera del bloque de filtros */}
+        {/* Modal outside the filter block */}
         {showModal && (
           <DynamicFormModal
             title={modalTitle}
@@ -346,7 +329,14 @@ export default function EmployeesPage() {
         )}
 
         <DynamicTable
-          data={filteredEmployees}
+          data={filteredEmployees.map(emp => {
+            // Exclude roleIds to satisfy RowData type
+            const { roleIds, ...rest } = emp;
+            return {
+              ...rest,
+              roleNames: Array.isArray(emp.roleNames) ? emp.roleNames.join(', ') : emp.roleNames
+            };
+          })}
           columns={columnConfig}
           onSelectedRowsChange={handleSelectionChange}
           onActiveChange={handleActiveChange}
@@ -354,19 +344,19 @@ export default function EmployeesPage() {
 
         {showAlert && (
           <AlertDialog
-            title="Confirmar eliminación"
+            title="Confirm deletion"
             content={
               selectedIds.length === 1
-                ? '¿Estás seguro de eliminar este empleado?'
-                : `¿Estás seguro de eliminar estos ${selectedIds.length} empleados?`
+                ? 'Are you sure you want to delete this employee?'
+                : `Are you sure you want to delete these ${selectedIds.length} employees?`
             }
             onCancel={() => setShowAlert(false)}
             onSuccess={async () => {
               setShowAlert(false);
               await handleDelete();
             }}
-            onSuccessLabel="Eliminar"
-            onCancelLabel="Cancelar"
+            onSuccessLabel="Delete"
+            onCancelLabel="Cancel"
           />
         )}
 
@@ -387,7 +377,7 @@ export default function EmployeesPage() {
                     handleOpenModal(updateArray, 'Update Employee', emp);
                   }
                 } else {
-                  alert('Selecciona solo un empleado para actualizar.');
+                  alert('Select only one employee to update.');
                 }
               }}
             />
