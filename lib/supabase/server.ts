@@ -45,7 +45,9 @@ export async function createAdminClient() {
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 set(name: string, value: string, options: any) {
                     try {
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
                         cookieStore.set({ name, value, ...options });
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     } catch (error) {
                         // Handle error if needed
                     }
@@ -53,7 +55,9 @@ export async function createAdminClient() {
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 remove(name: string, options: any) {
                     try {
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
                         cookieStore.set({ name, value: '', ...options, maxAge: 0 });
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     } catch (error) {
                         // Handle error if needed
                     }
