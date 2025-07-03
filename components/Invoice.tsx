@@ -21,8 +21,8 @@ type InvoiceProps = {
   client: {
     name: string;
     address: string;
+    email: string;
     phone: string;
-    mobile: string;
   };
   invoice: {
     id: string;
@@ -96,9 +96,6 @@ const Invoice: React.FC<InvoiceProps> = ({
           <p>
             <strong>Phone:</strong> {client.phone}
           </p>
-          <p>
-            <strong>Mobile:</strong> {client.mobile}
-          </p>
         </div>
         <div>
           <p className="font-bold text-red-700">Invoice Details</p>
@@ -134,8 +131,8 @@ const Invoice: React.FC<InvoiceProps> = ({
               <td className="border p-2">{p.name}</td>
               <td className="border p-2">{p.quantity}</td>
               <td className="border p-2">{p.description}</td>
-              <td className="border p-2">${p.unitPrice.toFixed(2)}</td>
-              <td className="border p-2">${p.amount.toFixed(2)}</td>
+              <td className="border p-2">${p.unitPrice}</td>
+              <td className="border p-2">${p.amount}</td>
             </tr>
           ))}
         </tbody>
