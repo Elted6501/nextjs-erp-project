@@ -18,7 +18,10 @@ import {
   Clock,
   TrendingUp,
   Eye,
-  EyeOff
+  EyeOff,
+  CreditCard,
+  Banknote,
+  AlertTriangle
 } from 'lucide-react';
 
 // Función para obtener la fecha actual en formato YYYY-MM-DD
@@ -59,6 +62,7 @@ interface CartItem {
   quantity: number;
   unitPrice: number;
   totalPrice: number;
+  maxStock: number; // Agregado para validación
 }
 
 export default function SalesPage() {
@@ -80,6 +84,14 @@ export default function SalesPage() {
   const [clientSearch, setClientSearch] = useState('');
   const [loadingClients, setLoadingClients] = useState(false);
   const [showClientSelection, setShowClientSelection] = useState(false);
+
+  // Estados para método de pago
+  const [paymentMethod, setPaymentMethod] = useState<'Cash' | 'Credit' | 'Debit'>('Cash');
+  const [showPaymentSelection, setShowPaymentSelection] = useState(false);
+
+  // Estados para notas y confirmación
+  const [notes, setNotes] = useState('');
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
 
   // Estado para prevenir doble ejecución
   const [isCreatingSale, setIsCreatingSale] = useState(false);
@@ -165,6 +177,17 @@ export default function SalesPage() {
       return;
     }
 
+    // Validar stock disponible
+    const currentStock = product.stock || 0;
+    const currentInCart = rows.find(r => r.product_id === product.product_id)?.quantity || 0;
+    const availableStock = currentStock - currentInCart;
+
+    if (qty > availableStock) {
+      setModalMessage(`Insufficient stock. Available: ${availableStock}, Requested: ${qty}`);
+      setShowModal(true);
+      return;
+    }
+
     addProductToCart(product, qty);
     setInputId('');
     setInputQty('');
@@ -172,14 +195,29 @@ export default function SalesPage() {
 
   const addProductToCart = (product: Product, qty: number = 1) => {
     const existingItemIndex = rows.findIndex(row => row.product_id === product.product_id);
+    const currentStock = product.stock || 0;
     
     if (existingItemIndex >= 0) {
       const updatedRows = [...rows];
-      updatedRows[existingItemIndex].quantity += qty;
-      updatedRows[existingItemIndex].totalPrice = 
-        updatedRows[existingItemIndex].quantity * updatedRows[existingItemIndex].unitPrice;
+      const newQuantity = updatedRows[existingItemIndex].quantity + qty;
+      
+      // Validar que no exceda el stock
+      if (newQuantity > currentStock) {
+        setModalMessage(`Cannot add more items. Maximum available: ${currentStock}`);
+        setShowModal(true);
+        return;
+      }
+      
+      updatedRows[existingItemIndex].quantity = newQuantity;
+      updatedRows[existingItemIndex].totalPrice = newQuantity * updatedRows[existingItemIndex].unitPrice;
       setRows(updatedRows);
     } else {
+      if (qty > currentStock) {
+        setModalMessage(`Cannot add ${qty} items. Maximum available: ${currentStock}`);
+        setShowModal(true);
+        return;
+      }
+      
       const newRow: CartItem = {
         id: product.sku,
         product_id: product.product_id,
@@ -189,6 +227,7 @@ export default function SalesPage() {
         quantity: qty,
         unitPrice: Number(product.sale_price),
         totalPrice: Number(product.sale_price) * qty,
+        maxStock: currentStock
       };
       setRows(prev => [...prev, newRow]);
     }
@@ -200,6 +239,9 @@ export default function SalesPage() {
     
     if (newQuantity <= 0) {
       setRows(prevRows => prevRows.filter((_, i) => i !== index));
+    } else if (newQuantity > updatedRows[index].maxStock) {
+      setModalMessage(`Cannot exceed maximum stock of ${updatedRows[index].maxStock}`);
+      setShowModal(true);
     } else {
       updatedRows[index].quantity = newQuantity;
       updatedRows[index].totalPrice = newQuantity * updatedRows[index].unitPrice;
@@ -229,6 +271,18 @@ export default function SalesPage() {
     }
   };
 
+  const getPaymentIcon = (method: string) => {
+    switch (method) {
+      case 'Cash':
+        return <Banknote size={18} />;
+      case 'Credit':
+      case 'Debit':
+        return <CreditCard size={18} />;
+      default:
+        return <DollarSign size={18} />;
+    }
+  };
+
   const handleCreateSale = async () => {
     // Prevenir doble ejecución
     if (isCreatingSale) {
@@ -241,12 +295,12 @@ export default function SalesPage() {
       return;
     }
 
-    if (!selectedClient && !showClientSelection) {
-      setShowClientSelection(true);
-      return;
-    }
+    setShowConfirmModal(true);
+  };
 
+  const confirmCreateSale = async () => {
     setIsCreatingSale(true);
+    setShowConfirmModal(false);
 
     try {
       // Calcular el total antes del VAT
@@ -255,10 +309,10 @@ export default function SalesPage() {
 
       const saleData = {
         client_id: selectedClient?.client_id || null,
-        employee_id: null, // TODO: Implement employee selection
-        payment_method: 'Cash', // TODO: Implement payment method selection
+        employee_id: 1, // Hardcodeado como solicitaste
+        payment_method: paymentMethod,
         vat: vat,
-        notes: '', // TODO: Implement notes input
+        notes: notes.trim() || null,
         items: rows.map(item => ({
           product_id: item.product_id,
           name: item.name,
@@ -287,9 +341,8 @@ export default function SalesPage() {
 
       const clientInfo = selectedClient 
         ? ` - Client: ${getClientDisplayName(selectedClient)}`
-        : ' - No client assigned';
+        : ' - Anonymous Sale';
 
-      // Actualizar el mensaje de éxito para el nuevo formato
       const saleInfo = `Sale ID: ${result.sale_id}`;
       const totalAmount = result.total_amount || 0;
 
@@ -300,6 +353,8 @@ export default function SalesPage() {
         setRows([]);
         setSelectedClient(null);
         setShowClientSelection(false);
+        setPaymentMethod('Cash');
+        setNotes('');
       }, 2000);
 
     } catch (error) {
@@ -419,46 +474,84 @@ export default function SalesPage() {
             </div>
           </div>
 
-          {/* Client Selection Section */}
-          <div className="mb-6 p-6 bg-white rounded-xl shadow-sm border border-gray-200">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="bg-blue-100 p-2 rounded-lg">
-                  <User size={20} className="text-blue-600" />
+          {/* Client and Payment Selection Section */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+            {/* Client Selection */}
+            <div className="p-6 bg-white rounded-xl shadow-sm border border-gray-200">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="bg-blue-100 p-2 rounded-lg">
+                    <User size={20} className="text-blue-600" />
+                  </div>
+                  <div>
+                    <span className="font-semibold text-gray-800">Customer</span>
+                    {selectedClient ? (
+                      <div className="flex items-center gap-2 mt-1">
+                        <div className="flex items-center gap-2 bg-blue-50 px-3 py-2 rounded-lg border border-blue-200">
+                          {selectedClient.client_type === 'Business' ? 
+                            <Building size={16} className="text-blue-600" /> : 
+                            <Users size={16} className="text-blue-600" />
+                          }
+                          <span className="text-blue-800 font-medium">
+                            {getClientDisplayName(selectedClient)}
+                          </span>
+                          <button
+                            onClick={clearClientSelection}
+                            className="text-red-500 hover:text-red-700 ml-2 p-1 hover:bg-red-50 rounded"
+                          >
+                            <X size={14} />
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-gray-500 text-sm mt-1">No customer selected</p>
+                    )}
+                  </div>
                 </div>
-                <div>
-                  <span className="font-semibold text-gray-800">Customer</span>
-                  {selectedClient ? (
+                <Button
+                  label="Select Customer"
+                  onClick={() => {
+                    setShowClientSelection(true);
+                    setShowClientDropdown(true);
+                  }}
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition-colors"
+                />
+              </div>
+            </div>
+
+            {/* Payment Method Selection */}
+            <div className="p-6 bg-white rounded-xl shadow-sm border border-gray-200">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="bg-green-100 p-2 rounded-lg">
+                    {getPaymentIcon(paymentMethod)}
+                  </div>
+                  <div>
+                    <span className="font-semibold text-gray-800">Payment Method</span>
                     <div className="flex items-center gap-2 mt-1">
-                      <div className="flex items-center gap-2 bg-blue-50 px-3 py-2 rounded-lg border border-blue-200">
-                        {selectedClient.client_type === 'Business' ? 
-                          <Building size={16} className="text-blue-600" /> : 
-                          <Users size={16} className="text-blue-600" />
-                        }
-                        <span className="text-blue-800 font-medium">
-                          {getClientDisplayName(selectedClient)}
+                      <div className={`flex items-center gap-2 px-3 py-2 rounded-lg border ${
+                        paymentMethod === 'Cash' ? 'bg-green-50 border-green-200' :
+                        paymentMethod === 'Credit' ? 'bg-blue-50 border-blue-200' :
+                        'bg-purple-50 border-purple-200'
+                      }`}>
+                        {getPaymentIcon(paymentMethod)}
+                        <span className={`font-medium ${
+                          paymentMethod === 'Cash' ? 'text-green-800' :
+                          paymentMethod === 'Credit' ? 'text-blue-800' :
+                          'text-purple-800'
+                        }`}>
+                          {paymentMethod}
                         </span>
-                        <button
-                          onClick={clearClientSelection}
-                          className="text-red-500 hover:text-red-700 ml-2 p-1 hover:bg-red-50 rounded"
-                        >
-                          <X size={14} />
-                        </button>
                       </div>
                     </div>
-                  ) : (
-                    <p className="text-gray-500 text-sm mt-1">No customer selected</p>
-                  )}
+                  </div>
                 </div>
+                <Button
+                  label="Change Method"
+                  onClick={() => setShowPaymentSelection(true)}
+                  className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg font-medium transition-colors"
+                />
               </div>
-              <Button
-                label="Select Customer"
-                onClick={() => {
-                  setShowClientSelection(true);
-                  setShowClientDropdown(true);
-                }}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition-colors"
-              />
             </div>
           </div>
 
@@ -508,6 +601,24 @@ export default function SalesPage() {
             </div>
           </div>
 
+          {/* Notes Section */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              Sale Notes (Optional)
+            </label>
+            <textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Add any additional notes for this sale..."
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all resize-none"
+              rows={3}
+              maxLength={500}
+            />
+            <div className="text-xs text-gray-500 mt-1">
+              {notes.length}/500 characters
+            </div>
+          </div>
+
           {/* Products List Toggle */}
           <div className="mb-6">
             <button
@@ -545,39 +656,54 @@ export default function SalesPage() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-200">
-                      {filteredProducts.map(product => (
-                        <tr key={product.product_id} className="hover:bg-gray-50 transition-colors">
-                          <td className="px-4 py-3 text-sm font-mono text-gray-900">{product.sku}</td>
-                          <td className="px-4 py-3">
-                            <div>
-                              <div className="text-sm font-medium text-gray-900">{product.name}</div>
-                              <div className="text-xs text-gray-500 truncate max-w-xs">{product.description}</div>
-                            </div>
-                          </td>
-                          <td className="px-4 py-3 text-sm text-gray-600">{product.brand}</td>
-                          <td className="px-4 py-3">
-                            <span className={`text-sm font-semibold ${
-                              (product.stock || 0) <= 0 ? 'text-red-600' : 
-                              (product.stock || 0) < 10 ? 'text-yellow-600' : 
-                              'text-green-600'
-                            }`}>
-                              {product.stock || 0}
-                            </span>
-                          </td>
-                          <td className="px-4 py-3 text-sm font-semibold text-gray-900">
-                            ${Number(product.sale_price).toFixed(2)}
-                          </td>
-                          <td className="px-4 py-3">
-                            <button
-                              onClick={() => addProductToCart(product, 1)}
-                              className="bg-green-600 hover:bg-green-700 text-white p-2 rounded-lg transition-colors"
-                              title="Add to cart"
-                            >
-                              <Plus size={16} />
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
+                      {filteredProducts.map(product => {
+                        const inCart = rows.find(r => r.product_id === product.product_id)?.quantity || 0;
+                        const availableStock = (product.stock || 0) - inCart;
+                        
+                        return (
+                          <tr key={product.product_id} className="hover:bg-gray-50 transition-colors">
+                            <td className="px-4 py-3 text-sm font-mono text-gray-900">{product.sku}</td>
+                            <td className="px-4 py-3">
+                              <div>
+                                <div className="text-sm font-medium text-gray-900">{product.name}</div>
+                                <div className="text-xs text-gray-500 truncate max-w-xs">{product.description}</div>
+                              </div>
+                            </td>
+                            <td className="px-4 py-3 text-sm text-gray-600">{product.brand}</td>
+                            <td className="px-4 py-3">
+                              <div className="flex flex-col">
+                                <span className={`text-sm font-semibold ${
+                                  availableStock <= 0 ? 'text-red-600' : 
+                                  availableStock < 10 ? 'text-yellow-600' : 
+                                  'text-green-600'
+                                }`}>
+                                  {availableStock} available
+                                </span>
+                                {inCart > 0 && (
+                                  <span className="text-xs text-blue-600">({inCart} in cart)</span>
+                                )}
+                              </div>
+                            </td>
+                            <td className="px-4 py-3 text-sm font-semibold text-gray-900">
+                              ${Number(product.sale_price).toFixed(2)}
+                            </td>
+                            <td className="px-4 py-3">
+                              <button
+                                onClick={() => addProductToCart(product, 1)}
+                                disabled={availableStock <= 0}
+                                className={`p-2 rounded-lg transition-colors ${
+                                  availableStock <= 0 
+                                    ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                                    : 'bg-green-600 hover:bg-green-700 text-white'
+                                }`}
+                                title={availableStock <= 0 ? "Out of stock" : "Add to cart"}
+                              >
+                                <Plus size={16} />
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
@@ -628,6 +754,12 @@ export default function SalesPage() {
                           <div>
                             <div className="font-medium text-gray-900">{row.name}</div>
                             <div className="text-sm text-gray-500 font-mono">{row.id}</div>
+                            {row.quantity > row.maxStock && (
+                              <div className="text-xs text-red-600 flex items-center gap-1 mt-1">
+                                <AlertTriangle size={12} />
+                                Exceeds available stock ({row.maxStock})
+                              </div>
+                            )}
                           </div>
                         </td>
                         <td className="px-6 py-4 text-sm text-gray-600">{row.date}</td>
@@ -642,15 +774,25 @@ export default function SalesPage() {
                             >
                               <Minus size={16} />
                             </button>
-                            <span className="font-semibold text-gray-900 min-w-[2rem] text-center">
+                            <span className={`font-semibold min-w-[2rem] text-center ${
+                              row.quantity > row.maxStock ? 'text-red-600' : 'text-gray-900'
+                            }`}>
                               {row.quantity}
                             </span>
                             <button
                               onClick={() => updateQuantity(index, 1)}
-                              className="bg-green-100 hover:bg-green-200 text-green-600 p-1 rounded-lg transition-colors"
+                              disabled={row.quantity >= row.maxStock}
+                              className={`p-1 rounded-lg transition-colors ${
+                                row.quantity >= row.maxStock
+                                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                  : 'bg-green-100 hover:bg-green-200 text-green-600'
+                              }`}
                             >
                               <Plus size={16} />
                             </button>
+                          </div>
+                          <div className="text-xs text-gray-500 text-center mt-1">
+                            Max: {row.maxStock}
                           </div>
                         </td>
                         <td className="px-6 py-4 text-right font-medium text-gray-900">
@@ -727,11 +869,11 @@ export default function SalesPage() {
                 </div>
               }
               className={`px-8 py-3 rounded-lg font-semibold text-lg transition-all duration-200 ${
-                rows.length === 0 || isCreatingSale
+                rows.length === 0 || isCreatingSale || rows.some(r => r.quantity > r.maxStock)
                   ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
                   : 'bg-green-600 hover:bg-green-700 text-white hover:shadow-lg transform hover:scale-105'
               }`}
-              onClick={(rows.length > 0 && !isCreatingSale) ? handleCreateSale : () => {}}
+              onClick={(rows.length > 0 && !isCreatingSale && !rows.some(r => r.quantity > r.maxStock)) ? handleCreateSale : () => {}}
             />
             <Button 
               label={
@@ -750,6 +892,127 @@ export default function SalesPage() {
           </div>
         </div>
       </div>
+
+      {/* Payment Method Selection Modal */}
+      {showPaymentSelection && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl p-6 w-full max-w-md shadow-2xl">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-xl font-bold text-gray-800">Select Payment Method</h2>
+              <button
+                onClick={() => setShowPaymentSelection(false)}
+                className="text-gray-500 hover:text-gray-700 p-1 hover:bg-gray-100 rounded"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            
+            <div className="space-y-3">
+              {(['Cash', 'Credit', 'Debit'] as const).map(method => (
+                <button
+                  key={method}
+                  onClick={() => {
+                    setPaymentMethod(method);
+                    setShowPaymentSelection(false);
+                  }}
+                  className={`w-full text-left px-4 py-3 rounded-lg border transition-all duration-200 ${
+                    paymentMethod === method
+                      ? 'border-green-300 bg-green-50'
+                      : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={`p-2 rounded-lg ${
+                      method === 'Cash' ? 'bg-green-100' :
+                      method === 'Credit' ? 'bg-blue-100' :
+                      'bg-purple-100'
+                    }`}>
+                      {getPaymentIcon(method)}
+                    </div>
+                    <div>
+                      <div className="font-medium text-gray-900">{method}</div>
+                      <div className="text-sm text-gray-500">
+                        {method === 'Cash' ? 'Cash payment' :
+                         method === 'Credit' ? 'Credit card payment' :
+                         'Debit card payment'}
+                      </div>
+                    </div>
+                    {paymentMethod === method && (
+                      <div className="ml-auto text-green-600">
+                        ✓
+                      </div>
+                    )}
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirmation Modal */}
+      {showConfirmModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl p-6 w-full max-w-md shadow-2xl">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-xl font-bold text-gray-800">Confirm Sale</h2>
+              <button
+                onClick={() => setShowConfirmModal(false)}
+                className="text-gray-500 hover:text-gray-700 p-1 hover:bg-gray-100 rounded"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            
+            <div className="space-y-4">
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <span className="text-gray-600">Customer:</span>
+                    <p className="font-medium">{selectedClient ? getClientDisplayName(selectedClient) : 'Anonymous'}</p>
+                  </div>
+                  <div>
+                    <span className="text-gray-600">Payment:</span>
+                    <p className="font-medium flex items-center gap-1">
+                      {getPaymentIcon(paymentMethod)}
+                      {paymentMethod}
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-gray-600">Items:</span>
+                    <p className="font-medium">{totalQuantity} products</p>
+                  </div>
+                  <div>
+                    <span className="text-gray-600">Total:</span>
+                    <p className="font-medium text-green-600">${(totalPrice * 1.16).toFixed(2)}</p>
+                  </div>
+                </div>
+                {notes && (
+                  <div className="mt-3 pt-3 border-t">
+                    <span className="text-gray-600 text-sm">Notes:</span>
+                    <p className="text-sm mt-1">{notes}</p>
+                  </div>
+                )}
+              </div>
+              
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowConfirmModal(false)}
+                  className="flex-1 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmCreateSale}
+                  className="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors"
+                >
+                  Confirm Sale
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Client Selection Modal */}
       {showClientSelection && (

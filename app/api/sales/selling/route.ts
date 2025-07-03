@@ -28,45 +28,133 @@ export async function POST(request: Request) {
     
     const {
       client_id,
-      employee_id,
+      employee_id = 1, // Hardcodeado como solicitaste
       payment_method,
       vat,
       notes,
       items
     } = body;
 
-    // Validar datos requeridos
-    if (!payment_method || !items || items.length === 0) {
+    // Validaciones más estrictas
+    if (!payment_method) {
       return NextResponse.json(
-        { error: "Missing required fields" },
+        { error: "Payment method is required" },
         { status: 400 }
       );
     }
 
+    if (!['Cash', 'Credit', 'Debit'].includes(payment_method)) {
+      return NextResponse.json(
+        { error: "Invalid payment method. Must be Cash, Credit, or Debit" },
+        { status: 400 }
+      );
+    }
+
+    if (!items || !Array.isArray(items) || items.length === 0) {
+      return NextResponse.json(
+        { error: "At least one item is required" },
+        { status: 400 }
+      );
+    }
+
+    // Validar cada item del carrito
+    for (const [index, item] of items.entries()) {
+      if (!item.product_id || typeof item.product_id !== 'number') {
+        return NextResponse.json(
+          { error: `Invalid product_id for item ${index + 1}` },
+          { status: 400 }
+        );
+      }
+      if (!item.quantity || item.quantity <= 0) {
+        return NextResponse.json(
+          { error: `Invalid quantity for item ${index + 1}` },
+          { status: 400 }
+        );
+      }
+      if (!item.unitPrice || item.unitPrice <= 0) {
+        return NextResponse.json(
+          { error: `Invalid unit price for item ${index + 1}` },
+          { status: 400 }
+        );
+      }
+    }
+
+    // Validar cliente si se proporciona
+    if (client_id) {
+      const { data: clientExists, error: clientError } = await supabase
+        .from('clients')
+        .select('client_id, status')
+        .eq('client_id', client_id)
+        .single();
+
+      if (clientError || !clientExists) {
+        return NextResponse.json(
+          { error: "Client not found" },
+          { status: 400 }
+        );
+      }
+
+      if (clientExists.status !== 'Active') {
+        return NextResponse.json(
+          { error: "Client is not active" },
+          { status: 400 }
+        );
+      }
+    }
+
     try {
-      // 1. Verificar stock disponible directamente desde products
+      // 1. Verificar stock disponible y obtener información de productos
       const productIds = items.map((item: SaleItem) => item.product_id);
       
       const { data: productsWithStock, error: productsError } = await supabase
         .from("products")
-        .select("product_id, name, sku, stock, sale_price")
+        .select("product_id, name, sku, stock, sale_price, active")
         .in("product_id", productIds);
 
       if (productsError) {
         throw new Error(`Error fetching products: ${productsError.message}`);
       }
 
-      // Verificar stock para cada producto
+      // Verificar que todos los productos existen y están activos
       for (const item of items) {
         const product = productsWithStock?.find(p => p.product_id === item.product_id);
-        const availableStock = product?.stock || 0;
+        
+        if (!product) {
+          return NextResponse.json(
+            { error: `Product with ID ${item.product_id} not found` },
+            { status: 400 }
+          );
+        }
+
+        if (!product.active) {
+          return NextResponse.json(
+            { error: `Product ${product.name} is not active` },
+            { status: 400 }
+          );
+        }
+
+        const availableStock = product.stock || 0;
         
         console.log(`Product ${item.product_id}: Available stock = ${availableStock}, Requested = ${item.quantity}`);
         
         if (availableStock < item.quantity) {
           return NextResponse.json(
             { 
-              error: `Insufficient stock for ${product?.name || `Product ${item.product_id}`}. Available: ${availableStock}, Requested: ${item.quantity}` 
+              error: `Insufficient stock for ${product.name}. Available: ${availableStock}, Requested: ${item.quantity}` 
+            },
+            { status: 400 }
+          );
+        }
+
+        // Validar que el precio unitario coincida (con tolerancia del 1%)
+        const expectedPrice = Number(product.sale_price);
+        const providedPrice = Number(item.unitPrice);
+        const tolerance = expectedPrice * 0.01;
+
+        if (Math.abs(expectedPrice - providedPrice) > tolerance) {
+          return NextResponse.json(
+            { 
+              error: `Price mismatch for ${product.name}. Expected: ${expectedPrice}, Provided: ${providedPrice}` 
             },
             { status: 400 }
           );
@@ -81,23 +169,34 @@ export async function POST(request: Request) {
           name: product?.name || item.name || '',
           sku: product?.sku || item.sku || '',
           quantity: item.quantity,
-          unit_price: item.unitPrice,
-          total_price: item.totalPrice
+          unit_price: Number(item.unitPrice),
+          total_price: Number(item.totalPrice)
         };
       });
 
-      // 3. Crear UNA SOLA venta con todos los productos en JSON
-      const saleDate = new Date().toISOString();
-      const totalAmount = items.reduce((sum: number, item: SaleItem) => sum + item.totalPrice, 0);
+      // 3. Validar totales
+      const calculatedSubtotal = productsJson.reduce((sum, product) => sum + product.total_price, 0);
+      const providedVat = Number(vat) || 0;
+      const expectedVat = calculatedSubtotal * 0.16;
       
-      // Preparar datos para insertar - NO incluir sale_id para que se auto-genere
+      // Verificar que el VAT esté dentro de un rango razonable (15-17% del subtotal)
+      if (providedVat < calculatedSubtotal * 0.15 || providedVat > calculatedSubtotal * 0.17) {
+        return NextResponse.json(
+          { error: `Invalid VAT amount. Expected around ${expectedVat.toFixed(2)}, got ${providedVat.toFixed(2)}` },
+          { status: 400 }
+        );
+      }
+
+      // 4. Crear la venta
+      const saleDate = new Date().toISOString();
+      
       const saleData = {
-        ...(client_id && { client_id }), // Solo incluir si no es null
-        ...(employee_id && { employee_id }), // Solo incluir si no es null
-        products: productsJson, // Almacenar todos los productos como JSON
+        ...(client_id && { client_id }),
+        employee_id,
+        products: productsJson,
         payment_method,
-        vat: vat || 0,
-        ...(notes && { notes }), // Solo incluir si tiene valor
+        vat: providedVat,
+        ...(notes && notes.trim() && { notes: notes.trim() }),
         status: true,
         sale_date: saleDate,
       };
@@ -106,14 +205,14 @@ export async function POST(request: Request) {
 
       const { data: sale, error: saleError } = await supabase
         .from("sales")
-        .insert([saleData]) // Usar array para ser más explícito
+        .insert([saleData])
         .select()
         .single();
 
       if (saleError) {
         console.error("Error creating sale:", saleError);
         
-        // Manejar errores de foreign key
+        // Manejar errores específicos
         if (saleError.message.includes("foreign key constraint")) {
           if (saleError.message.includes("employee")) {
             return NextResponse.json(
@@ -141,10 +240,10 @@ export async function POST(request: Request) {
         );
       }
 
-      // 4. Actualizar el stock en la tabla products
-      for (const item of items) {
+      // 5. Actualizar stock de productos en lote
+      const stockUpdatePromises = items.map(async (item: SaleItem) => {
         const product = productsWithStock?.find(p => p.product_id === item.product_id);
-        if (!product) continue;
+        if (!product) return;
 
         const newStock = (product.stock || 0) - item.quantity;
         
@@ -157,14 +256,14 @@ export async function POST(request: Request) {
           throw new Error(`Error updating stock for product ${item.product_id}: ${updateError.message}`);
         }
 
-        // 5. Crear registro de movimiento de inventario
-        const movementData: any = {
+        // Crear movimiento de inventario
+        const movementData = {
           product_id: item.product_id,
           movement_type: 'exit',
           quantity: item.quantity,
           movement_date: saleDate,
           reference: `SALE-${sale.sale_id}`,
-          user_id: employee_id || 1,
+          user_id: employee_id,
         };
 
         const { error: movementError } = await supabase
@@ -172,19 +271,26 @@ export async function POST(request: Request) {
           .insert(movementData);
 
         if (movementError) {
-          console.error(`Error creating inventory movement: ${movementError.message}`);
-          // No interrumpir la venta por este error
+          console.error(`Warning: Error creating inventory movement for product ${item.product_id}:`, movementError.message);
+          // No interrumpir por este error, es informativo
         }
-      }
+      });
 
-      const totalWithVat = totalAmount + (vat || 0);
+      // Ejecutar todas las actualizaciones de stock
+      await Promise.all(stockUpdatePromises);
+
+      const totalWithVat = calculatedSubtotal + providedVat;
 
       return NextResponse.json({
         success: true,
         sale_id: sale.sale_id,
         products: productsJson,
         total_items: items.length,
+        subtotal: calculatedSubtotal,
+        vat: providedVat,
         total_amount: totalWithVat,
+        payment_method,
+        sale_date: saleDate,
         message: `Sale created successfully with ${items.length} products. Sale ID: ${sale.sale_id}`
       });
 
@@ -227,6 +333,7 @@ export async function GET(request: Request) {
     const employeeId = searchParams.get('employee_id');
     const dateFrom = searchParams.get('date_from');
     const dateTo = searchParams.get('date_to');
+    const status = searchParams.get('status');
     
     // Construir query base
     let query = supabase
@@ -235,6 +342,7 @@ export async function GET(request: Request) {
         *,
         clients:client_id(
           client_id,
+          client_type,
           business_name,
           first_name,
           last_name,
@@ -248,11 +356,11 @@ export async function GET(request: Request) {
       `, { count: 'exact' });
     
     // Aplicar filtros
-    if (clientId) {
+    if (clientId && !isNaN(parseInt(clientId))) {
       query = query.eq('client_id', parseInt(clientId));
     }
     
-    if (employeeId) {
+    if (employeeId && !isNaN(parseInt(employeeId))) {
       query = query.eq('employee_id', parseInt(employeeId));
     }
     
@@ -262,6 +370,12 @@ export async function GET(request: Request) {
     
     if (dateTo) {
       query = query.lte('sale_date', dateTo);
+    }
+
+    if (status === 'active') {
+      query = query.eq('status', true);
+    } else if (status === 'returned') {
+      query = query.eq('status', false);
     }
     
     // Aplicar paginación y ordenamiento
@@ -278,9 +392,24 @@ export async function GET(request: Request) {
         { status: 500 }
       );
     }
+
+    // Procesar datos para agregar totales calculados
+    const processedData = data?.map(sale => {
+      const products = sale.products || [];
+      const subtotal = products.reduce((sum: number, product: any) => sum + (product.total_price || 0), 0);
+      const total = subtotal + (sale.vat || 0);
+      const totalItems = products.reduce((sum: number, product: any) => sum + (product.quantity || 0), 0);
+      
+      return {
+        ...sale,
+        subtotal,
+        total,
+        total_items: totalItems
+      };
+    }) || [];
     
     return NextResponse.json({
-      data: data || [],
+      data: processedData,
       pagination: {
         page,
         limit,

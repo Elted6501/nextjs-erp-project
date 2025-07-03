@@ -18,7 +18,9 @@ import {
   X,
   ChevronLeft,
   ChevronRight,
-  Loader2
+  Loader2,
+  CreditCard,
+  Banknote
 } from 'lucide-react';
 
 interface Product {
@@ -78,6 +80,7 @@ export default function SalesHistoryPage() {
   const [selectedSale, setSelectedSale] = useState<Sale | null>(null);
   const [showReturnModal, setShowReturnModal] = useState(false);
   const [returnReason, setReturnReason] = useState('');
+  const [refoundMethod, setRefoundMethod] = useState<'Cash' | 'Credit' | 'Store Credit'>('Store Credit');
   const [processingReturn, setProcessingReturn] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [pagination, setPagination] = useState<PaginationInfo>({
@@ -134,6 +137,13 @@ export default function SalesHistoryPage() {
   const handleReturnSale = async () => {
     if (!selectedSale || !returnReason.trim()) {
       setMessage({ type: 'error', text: 'Please provide a reason for the return' });
+      setTimeout(() => setMessage(null), 4000);
+      return;
+    }
+
+    if (returnReason.trim().length < 10) {
+      setMessage({ type: 'error', text: 'Return reason must be at least 10 characters long' });
+      setTimeout(() => setMessage(null), 4000);
       return;
     }
 
@@ -145,17 +155,21 @@ export default function SalesHistoryPage() {
         body: JSON.stringify({
           sale_id: selectedSale.sale_id,
           reason: returnReason.trim(),
-          employee_id: null // TODO: Implement employee selection
+          refound_method: refoundMethod
         })
       });
 
       const result = await response.json();
 
       if (response.ok) {
-        setMessage({ type: 'success', text: result.message || 'Sale returned successfully' });
+        setMessage({ 
+          type: 'success', 
+          text: `Sale returned successfully! ${result.data?.total_items_returned || 0} items returned to inventory. Total refund: $${result.data?.total_amount_returned?.toFixed(2) || '0.00'}` 
+        });
         setShowReturnModal(false);
         setSelectedSale(null);
         setReturnReason('');
+        setRefoundMethod('Store Credit');
         await loadSales(); // Recargar la lista
       } else {
         throw new Error(result.error || 'Failed to process return');
@@ -168,7 +182,7 @@ export default function SalesHistoryPage() {
       });
     } finally {
       setProcessingReturn(false);
-      setTimeout(() => setMessage(null), 4000);
+      setTimeout(() => setMessage(null), 6000);
     }
   };
 
@@ -190,6 +204,31 @@ export default function SalesHistoryPage() {
     }
   };
 
+  const getPaymentIcon = (method: string) => {
+    switch (method) {
+      case 'Cash':
+        return <Banknote size={14} />;
+      case 'Credit':
+      case 'Debit':
+        return <CreditCard size={14} />;
+      default:
+        return <DollarSign size={14} />;
+    }
+  };
+
+  const getRefoundIcon = (method: string) => {
+    switch (method) {
+      case 'Cash':
+        return <Banknote size={16} className="text-green-600" />;
+      case 'Credit':
+        return <CreditCard size={16} className="text-blue-600" />;
+      case 'Store Credit':
+        return <Package size={16} className="text-purple-600" />;
+      default:
+        return <DollarSign size={16} />;
+    }
+  };
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
@@ -205,6 +244,18 @@ export default function SalesHistoryPage() {
     return today.toISOString().split('T')[0];
   };
 
+  const validateReturnForm = () => {
+    if (!returnReason.trim()) {
+      setMessage({ type: 'error', text: 'Please provide a reason for the return' });
+      return false;
+    }
+    if (returnReason.trim().length < 10) {
+      setMessage({ type: 'error', text: 'Return reason must be at least 10 characters long' });
+      return false;
+    }
+    return true;
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-gray-100 to-gray-50 p-4">
       {/* Message Alert */}
@@ -212,20 +263,20 @@ export default function SalesHistoryPage() {
         message ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'
       }`}>
         {message && (
-          <div className={`px-4 py-3 rounded-xl shadow-2xl flex items-center gap-3 backdrop-blur-lg ${
+          <div className={`px-4 py-3 rounded-xl shadow-2xl flex items-center gap-3 backdrop-blur-lg max-w-md ${
             message.type === 'success' 
               ? 'bg-green-500/90 text-white' 
               : 'bg-red-500/90 text-white'
           }`}>
             {message.type === 'success' ? (
-              <CheckCircle className="w-5 h-5" />
+              <CheckCircle className="w-5 h-5 flex-shrink-0" />
             ) : (
-              <AlertTriangle className="w-5 h-5" />
+              <AlertTriangle className="w-5 h-5 flex-shrink-0" />
             )}
             <span className="text-sm font-medium">{message.text}</span>
             <button 
               onClick={() => setMessage(null)}
-              className="ml-4 hover:bg-white/20 rounded-lg p-1 transition-colors"
+              className="ml-4 hover:bg-white/20 rounded-lg p-1 transition-colors flex-shrink-0"
             >
               <X size={16} />
             </button>
@@ -352,11 +403,12 @@ export default function SalesHistoryPage() {
                         </div>
                       </td>
                       <td className="p-3">
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1 w-fit ${
                           sale.payment_method === 'Cash' ? 'bg-green-100 text-green-700' :
                           sale.payment_method === 'Credit' ? 'bg-blue-100 text-blue-700' :
                           'bg-purple-100 text-purple-700'
                         }`}>
+                          {getPaymentIcon(sale.payment_method)}
                           {sale.payment_method}
                         </span>
                       </td>
@@ -425,14 +477,17 @@ export default function SalesHistoryPage() {
                       <Package size={16} className="text-gray-400" />
                       <span>{sale.total_items} items</span>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <DollarSign size={16} className="text-green-600" />
-                      <span className="font-semibold">${sale.total.toFixed(2)}</span>
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ml-auto ${
+                    <div className="flex items-center gap-2 justify-between">
+                      <div className="flex items-center gap-2">
+                        <DollarSign size={16} className="text-green-600" />
+                        <span className="font-semibold">${sale.total.toFixed(2)}</span>
+                      </div>
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1 ${
                         sale.payment_method === 'Cash' ? 'bg-green-100 text-green-700' :
                         sale.payment_method === 'Credit' ? 'bg-blue-100 text-blue-700' :
                         'bg-purple-100 text-purple-700'
                       }`}>
+                        {getPaymentIcon(sale.payment_method)}
                         {sale.payment_method}
                       </span>
                     </div>
@@ -564,7 +619,10 @@ export default function SalesHistoryPage() {
                 </div>
                 <div>
                   <p className="text-sm font-medium text-gray-600">Payment Method</p>
-                  <p className="text-sm">{selectedSale.payment_method}</p>
+                  <div className="flex items-center gap-1">
+                    {getPaymentIcon(selectedSale.payment_method)}
+                    <span className="text-sm">{selectedSale.payment_method}</span>
+                  </div>
                 </div>
               </div>
 
@@ -594,7 +652,7 @@ export default function SalesHistoryPage() {
                   <span>${selectedSale.subtotal.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between mb-2">
-                  <span>VAT:</span>
+                  <span>VAT (16%):</span>
                   <span>${selectedSale.vat.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between font-bold text-lg">
@@ -625,6 +683,7 @@ export default function SalesHistoryPage() {
                 onClick={() => {
                   setShowReturnModal(false);
                   setReturnReason('');
+                  setRefoundMethod('Store Credit');
                 }}
                 className="text-gray-500 hover:text-gray-700 p-1 hover:bg-gray-100 rounded"
               >
@@ -635,9 +694,37 @@ export default function SalesHistoryPage() {
             <div className="space-y-4">
               <div className="p-4 bg-red-50 rounded-lg">
                 <p className="text-sm font-medium text-red-800 mb-2">Sale #{selectedSale.sale_id}</p>
-                <p className="text-sm text-red-600">
-                  This action will return all products to inventory and mark the sale as returned.
+                <p className="text-sm text-red-600 mb-2">
+                  This action will return all {selectedSale.total_items} products to inventory and mark the sale as returned.
                 </p>
+                <p className="text-sm font-semibold text-red-700">
+                  Total amount: ${selectedSale.total.toFixed(2)}
+                </p>
+              </div>
+
+              {/* Refound Method Selection */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Refound Method <span className="text-red-500">*</span>
+                </label>
+                <div className="space-y-2">
+                  {(['Cash', 'Credit', 'Store Credit'] as const).map(method => (
+                    <label key={method} className="flex items-center gap-3 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="refoundMethod"
+                        value={method}
+                        checked={refoundMethod === method}
+                        onChange={(e) => setRefoundMethod(e.target.value as typeof refoundMethod)}
+                        className="text-red-600 focus:ring-red-500"
+                      />
+                      <div className="flex items-center gap-2">
+                        {getRefoundIcon(method)}
+                        <span className="text-sm font-medium">{method}</span>
+                      </div>
+                    </label>
+                  ))}
+                </div>
               </div>
 
               <div>
@@ -647,11 +734,15 @@ export default function SalesHistoryPage() {
                 <textarea
                   value={returnReason}
                   onChange={(e) => setReturnReason(e.target.value)}
-                  placeholder="Please provide a reason for the return..."
+                  placeholder="Please provide a detailed reason for the return (minimum 10 characters)..."
                   className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent resize-none"
                   rows={4}
+                  maxLength={500}
                   required
                 />
+                <div className="text-xs text-gray-500 mt-1">
+                  {returnReason.length}/500 characters (minimum 10)
+                </div>
               </div>
 
               <div className="flex gap-3">
@@ -659,6 +750,7 @@ export default function SalesHistoryPage() {
                   onClick={() => {
                     setShowReturnModal(false);
                     setReturnReason('');
+                    setRefoundMethod('Store Credit');
                   }}
                   className="flex-1 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium transition-colors"
                   disabled={processingReturn}
@@ -667,7 +759,7 @@ export default function SalesHistoryPage() {
                 </button>
                 <button
                   onClick={handleReturnSale}
-                  disabled={processingReturn || !returnReason.trim()}
+                  disabled={processingReturn || !validateReturnForm()}
                   className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
                   {processingReturn ? (
