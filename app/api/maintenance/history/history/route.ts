@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 
-function normalizeDate(input: string) {
-    const [month, day, year] = input.split("-");
-    return `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
+function normalizeDate(date:string) {
+  const [dia, mes, año] = date.split('/');
+  return `${año}/${mes}/${dia}`;
 }
 
 export async function GET(req: Request) {
@@ -12,10 +12,10 @@ export async function GET(req: Request) {
 
     if (typeof id === 'string' && typeof date === 'string') {
         const supabase = await createClient();
-        console.log(normalizeDate(date.toString().replaceAll('/', '-')));
-
+        const normalize = normalizeDate(date);
+        
         const { data, error } = await supabase.rpc('historial', {
-            p_mn_completed: date.toString().replaceAll('/', '-'),
+            p_mn_completed: normalize.toString().replaceAll('/', '-'),
             p_employee_id: id.toString()
         });
 

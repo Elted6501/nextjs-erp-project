@@ -10,9 +10,13 @@ import { FaCalendarAlt } from "react-icons/fa";
 export default function HistoryPage() {
   const [mechanic, setMechanic] = useState<Mechanic>({ employee_id: 0, first_name: 'Any', last_name: 'Any' });
   const [mechanics, setMechanics] = useState<Mechanic[]>([]);
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [historyVisible, setHistoryVisible] = useState<boolean>(false);
   const [history, setHistory] = useState<History[]>([{ car: '', date: '', entryDate: '', exitDate: '', services: [] }]);
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+
+  useEffect(() => {
+    setSelectedDate(new Date());
+  }, []);
 
   useEffect(() => {
     fetch("../api/maintenance/schedule/mechanics")
