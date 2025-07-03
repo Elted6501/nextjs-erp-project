@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import DynamicTable from "@/components/DynamicTable";
 import styles from "@/app/finance/page.module.css";
 import Button from "@/components/Button";
-import { FaCheck, FaEye, FaTimes, FaFileExcel } from "react-icons/fa";
+import { FaCheck, FaTimes, FaFileExcel } from "react-icons/fa";
 import Dropdown from "@/components/Dropdown";
 import toExcel from "@/lib/xlsx/toExcel";
 
@@ -108,7 +108,7 @@ export default function OrdersPage() {
   };
 
   return (
-    <main className={`${styles.div_principal} gap-2 flex flex-col`}>
+    <main className={`${styles.div_principal}`}>
       <div className={`${styles.div_principal_top} flex gap-2 mb-6 items-center`}>
         <div className={`${styles.div_busqueda} gap-y-3 flex items-center w-full`}>
           <label className="text-2xl text-[#8b0f14] font-bold" style={{ alignSelf: "flex-start" }}>
@@ -148,9 +148,13 @@ export default function OrdersPage() {
         data={status || description ? filteredData : orders}
         columns={columns}
         actionIcons={{
-          icon1: <FaEye className="w-5 h-5" />,
           icon2: <FaCheck className="w-5 h-5" />,
           icon3: <FaTimes className="w-5 h-5" />,
+        }}
+        actions={{
+          view: false,
+          accept: true,
+          cancel: true,
         }}
       />
     </main>

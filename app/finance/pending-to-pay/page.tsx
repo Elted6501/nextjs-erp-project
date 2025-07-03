@@ -3,7 +3,7 @@ import Button from "@/components/Button";
 import Dropdown from "@/components/Dropdown";
 import DynamicTable from "@/components/DynamicTable";
 import { useEffect, useState } from "react";
-import { FaFileExcel, FaEye, FaTimes, FaRegCheckCircle } from "react-icons/fa";
+import { FaFileExcel, FaMoneyBill, FaRegCalendarTimes } from "react-icons/fa";
 import styles from "@/app/finance/page.module.css";
 import toExcel from "@/lib/xlsx/toExcel";
 
@@ -102,9 +102,9 @@ export default function PendingToPayPage() {
     if (description) {
       data = data.filter((item) => item.OrderId.toString().includes(description.toString()));
     }
-    
+
     setFilteredData(data);
-  }, [status, description, date]);
+  }, [status, description, date, pendingToPay]);
 
   const handleStatusSelect = (value: string) => {
     setDescription("");
@@ -125,32 +125,32 @@ export default function PendingToPayPage() {
           <label className="text-2xl text-[#8b0f14] font-bold" style={{ alignSelf: "flex-start" }}>
             Pending to pay
           </label>
-          <div className={'{$styles.div_hijo_busqueda} flex justify-between items-center w-full'} >
+          <div className={"{$styles.div_hijo_busqueda} flex justify-between items-center w-full"}>
             <div className="flex gap-4 items-center w-full max-w-4xl">
-            <input
-              type="text"
-              placeholder="Search by Order ID"
-              className="w-[300px] px-4 border rounded-lg focus:outline-none focus:ring-2 bg-white border-[#a01217] focus:ring-[#a01217] text-black h-[37px]"
-              value={description}
-              onFocus={() => {
-                setStatus("");
-              }}
-              onChange={(e) => setDescription(e.target.value)}
-            />
-            <Dropdown options={ORDER_STATUS_OPTIONS} onSelect={handleStatusSelect} placeholder={status === "" ? "Select status" : status} />
-            <Dropdown options={ORDER_DATE_OPTIONS} onSelect={handleDateSelect} placeholder={date === "" ? "Select type date" : date} />
+              <input
+                type="text"
+                placeholder="Search by Order ID"
+                className="w-[300px] px-4 border rounded-lg focus:outline-none focus:ring-2 bg-white border-[#a01217] focus:ring-[#a01217] text-black h-[37px]"
+                value={description}
+                onFocus={() => {
+                  setStatus("");
+                }}
+                onChange={(e) => setDescription(e.target.value)}
+              />
+              <Dropdown options={ORDER_STATUS_OPTIONS} onSelect={handleStatusSelect} placeholder={status === "" ? "Select status" : status} />
+              <Dropdown options={ORDER_DATE_OPTIONS} onSelect={handleDateSelect} placeholder={date === "" ? "Select type date" : date} />
             </div>
             <div>
-            <Button
-              label={
-                <div className="flex items-center justify-center gap-2 w-full h-full">
-                  <FaFileExcel className="w-4 h-4" />
-                  <span>Excel</span>
-                </div>
-              }
-              className="bg-[#a01217] text-white hover:bg-[#8b0f14] transition-colors px-4 h-[37px] rounded-lg flex items-center justify-center"
-              onClick={handleExportExcel}
-            />
+              <Button
+                label={
+                  <div className="flex items-center justify-center gap-2 w-full h-full">
+                    <FaFileExcel className="w-4 h-4" />
+                    <span>Excel</span>
+                  </div>
+                }
+                className="bg-[#a01217] text-white hover:bg-[#8b0f14] transition-colors px-4 h-[37px] rounded-lg flex items-center justify-center"
+                onClick={handleExportExcel}
+              />
             </div>
           </div>
         </div>
@@ -160,9 +160,13 @@ export default function PendingToPayPage() {
         data={status || description || date ? filteredData : pendingToPay}
         columns={TABLE_COLUMNS}
         actionIcons={{
-          icon1: <FaEye className="w-5 h-5" />,
-          icon2: <FaRegCheckCircle className="w-5 h-5" />,
-          icon3: <FaTimes className="w-5 h-5" />,
+          icon2: <FaMoneyBill className="w-5 h-5" />,
+          icon3: <FaRegCalendarTimes className="w-5 h-5" />,
+        }}
+        actions={{
+          view: false,
+          accept: true,
+          cancel: true,
         }}
       />
     </main>
