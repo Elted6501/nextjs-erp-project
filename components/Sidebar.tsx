@@ -16,7 +16,7 @@ import {
   FiUserCheck,
 } from 'react-icons/fi';
 import { FaHandHoldingUsd } from "react-icons/fa";
-import { FaFileInvoiceDollar,FaClipboardCheck } from "react-icons/fa6";
+import { FaClipboardList, FaFileInvoiceDollar } from "react-icons/fa6";
 import { BsHouse } from 'react-icons/bs';
 import Image from 'next/image';
 import styles from '../styles/Sidebar.module.css';
@@ -39,9 +39,9 @@ export default function Sidebar() {
       icon: <FiDollarSign />,
       permission: 'finance.view',
       submodules: [
-        { name: 'Orders', href: '/finance/orders', icon: <FaClipboardCheck />, permission: 'finance.view' },
-        { name: 'Invoices', href: '/finance/invoices', icon: <FaFileInvoiceDollar />, permission: 'finance.view' },
-        { name: 'Pending to pay', href: '/finance/pending-to-pay', icon: <FaHandHoldingUsd />, permission: 'finance.view' },
+        { name: 'Orders', href: '/finance/orders', icon: <FaClipboardList /> },
+        { name: 'Invoices', href: '/finance/invoices', icon: <FaFileInvoiceDollar /> },
+        { name: 'Pending to pay', href: '/finance/pending-to-pay', icon: <FaHandHoldingUsd /> },
       ],
     },
     { name: 'Sales', icon: <FiShoppingCart />, href: '/sales', permission: 'sales.view' },

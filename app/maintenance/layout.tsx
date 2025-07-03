@@ -12,6 +12,7 @@ export default function InventoryLayout({
 }: {
   children: React.ReactNode;
 }) {
+
   return (
     <div className="flex h-screen overflow-hidden">
       <Sidebar />

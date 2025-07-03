@@ -3,32 +3,32 @@ import { NextResponse } from "next/server";
 
 export async function GET() {
   const supabase = await createClient();
-  const { data: orders, error } = await supabase.from("view_orders_with_names").select();
+  const { data: quotations, error } = await supabase.from("view_invoices_with_details").select();
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
-
-  return NextResponse.json(orders);
+  
+  return NextResponse.json(quotations);
 }
 
 export async function PUT(request: Request) {
   const supabase = await createClient();
   const body = await request.json();
-  const {order_id, status} = body;
+  const {invoice_id, status} = body;
 
-  if(!order_id){
-    return NextResponse.json({ error: "Order ID is required" }, { status: 400 });
+  if(!invoice_id) {
+    return NextResponse.json({ error: "Invoice ID is required" }, { status: 400 });
   }
   
-  const allowedStatuses = ["Confirmed", "Cancelled"];
+  const allowedStatuses = ["Issued", "In progress"];
 
   if (status && !allowedStatuses.includes(status)) {
-    return NextResponse.json({ error: "Invalid order status" }, { status: 400 });
+    return NextResponse.json({ error: "Invalid invoice status" }, { status: 400 });
   }
 
-  const { error } = await supabase.rpc('update_order_status', {
-    order_id: order_id,
+  const { error } = await supabase.rpc('update_invoices_status', {
+    invoice_id: invoice_id,
     option: status
   })
 
@@ -37,6 +37,6 @@ export async function PUT(request: Request) {
   }
 
   return NextResponse.json({
-    message: "Order updated successfully",
+    message: "Invoice updated successfully",
    });
 }
