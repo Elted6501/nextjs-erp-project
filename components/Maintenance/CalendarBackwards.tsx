@@ -1,3 +1,4 @@
+'use client'
 import { useState } from "react";
 
 export default function Calendar({
@@ -6,17 +7,22 @@ export default function Calendar({
   fromDate = new Date(new Date().setFullYear(new Date().getFullYear() - 1)),
   toDate = new Date(),
 }: {
-  selected?: Date;
+  selected?: Date | null;
   onSelect: (date: Date) => void;
   fromDate?: Date;
   toDate?: Date;
 }) {
-  const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [currentMonth, setCurrentMonth] = useState<Date>(() => {
+    if (selected) return new Date(selected.getFullYear(), selected.getMonth(), 1);
+    const now = new Date();
+    return now > toDate ? new Date(toDate) : now;
+  });
 
   const startOfWeek = (date: Date) => {
     const day = date.getDay();
     return new Date(date.getFullYear(), date.getMonth(), date.getDate() - day);
   };
+  
   const endOfWeek = (date: Date) => {
     const day = date.getDay();
     return new Date(
@@ -25,6 +31,7 @@ export default function Calendar({
       date.getDate() + (6 - day)
     );
   };
+  
   const startOfMonth = (date: Date) => new Date(date.getFullYear(), date.getMonth(), 1);
   const endOfMonth = (date: Date) => new Date(date.getFullYear(), date.getMonth() + 1, 0);
   const addMonths = (date: Date, months: number) => new Date(date.getFullYear(), date.getMonth() + months, 1);
@@ -34,7 +41,7 @@ export default function Calendar({
     const start = startOfWeek(startOfMonth(currentMonth));
     const end = endOfWeek(endOfMonth(currentMonth));
     const days = [];
-    for (let d = start; d <= end; d = new Date(d.getTime() + 86400000)) {
+    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
       days.push(new Date(d));
     }
     return days;
@@ -54,7 +61,7 @@ export default function Calendar({
           ‹
         </button>
         <span className="font-semibold text-lg text-red-600">
-          {currentMonth.toLocaleDateString(undefined, {
+          {currentMonth.toLocaleDateString('en-US', {
             month: "long",
             year: "numeric",
           })}
