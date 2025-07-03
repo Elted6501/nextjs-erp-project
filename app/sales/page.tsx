@@ -3,7 +3,7 @@ import { FaArrowRight } from "react-icons/fa";
 import { useRouter } from "next/navigation";
 import Card from "@/components/Card";
 
-export default function salesPage() {
+export default function SalesPage() {
   const router = useRouter();
 
   return (

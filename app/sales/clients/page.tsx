@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Button from '@/components/Button';
-import { Pencil, X } from 'lucide-react';
+import { Pencil} from 'lucide-react';
 
 interface Client {
     _id: string;
@@ -66,7 +66,8 @@ export default function ClientPage() {
             setEditingClient(null);
             setNewClient({ status: 'Active' });
         } catch (err) {
-            setMessage({ type: 'error', text: 'Error at the moment to register client' });
+            console.error(err);
+            setMessage({ type: 'error', text: 'Error al guardar el cliente. Por favor, inténtalo de nuevo.' });
         } finally {
             setTimeout(() => setMessage(null), 4000);
         }

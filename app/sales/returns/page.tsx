@@ -1,19 +1,20 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import Button from '@/components/Button';
+import { useState } from "react";
+import Button from "@/components/Button";
 import styles from "@/app/sales/sales.module.css";
 
 const PRODUCTS_DB = [
-  { id: 'P001', name: 'Lights', description: 'LED Front Lights', price: 450 },
-  { id: 'P002', name: 'Mouse', description: 'Wireless ergonomic mouse', price: 50 },
-  { id: 'P003', name: 'Keyboard', description: 'Mechanical keyboard', price: 120 },
+  { id: "P001", name: "Lights", description: "LED Front Lights", price: 450 },
+  { id: "P002", name: "Mouse", description: "Wireless ergonomic mouse", price: 50 },
+  { id: "P003", name: "Keyboard", description: "Mechanical keyboard", price: 120 },
 ];
 
 export default function ReturnsPage() {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [rows, setRows] = useState<any[]>([]);
-  const [inputId, setInputId] = useState('');
-  const [inputQty, setInputQty] = useState('');
+  const [inputId, setInputId] = useState("");
+  const [inputQty, setInputQty] = useState("");
   const [showModal, setShowModal] = useState(false);
 
   const handleAddReturn = async () => {
@@ -23,7 +24,7 @@ export default function ReturnsPage() {
     if (product && qty > 0) {
       const returnRow = {
         id: product.id,
-        name: product.name + ' (Return)',
+        name: product.name + " (Return)",
         description: product.description,
         quantity: -qty,
         price: -product.price * qty,
@@ -31,18 +32,18 @@ export default function ReturnsPage() {
       };
 
       setRows((prev) => [...prev, returnRow]);
-      setInputId('');
-      setInputQty('');
+      setInputId("");
+      setInputQty("");
 
       try {
-        await fetch('/api/returns', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+        await fetch("/api/returns", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify(returnRow),
         });
-        console.log('Return saved.');
+        console.log("Return saved.");
       } catch (error) {
-        console.error('Error saving return:', error);
+        console.error("Error saving return:", error);
       }
     } else {
       setShowModal(true);
@@ -101,9 +102,9 @@ export default function ReturnsPage() {
             </thead>
             <tbody className="text-gray-700 text-sm">
               {rows.map((row, index) => (
-                <tr key={index} className={`border-t ${row.quantity < 0 ? 'bg-red-50' : ''}`}>
+                <tr key={index} className={`border-t ${row.quantity < 0 ? "bg-red-50" : ""}`}>
                   <td className="px-6 py-4">{row.id}</td>
-                  <td className="px-6 py-4">{row.date.toISOString().split('T')[0]}</td>
+                  <td className="px-6 py-4">{row.date.toISOString().split("T")[0]}</td>
                   <td className="px-6 py-4">{row.name}</td>
                   <td className="px-6 py-4">{row.description}</td>
                   <td className="px-6 py-4 text-right">{row.quantity}</td>
@@ -113,7 +114,9 @@ export default function ReturnsPage() {
             </tbody>
             <tfoot className="bg-gray-100 font-bold text-gray-900 text-sm border-t">
               <tr>
-                <td className="px-6 py-4" colSpan={4}>Totals</td>
+                <td className="px-6 py-4" colSpan={4}>
+                  Totals
+                </td>
                 <td className="px-6 py-4 text-right">{totalQuantity}</td>
                 <td className="px-6 py-4 text-right">${totalPrice.toFixed(2)}</td>
               </tr>
