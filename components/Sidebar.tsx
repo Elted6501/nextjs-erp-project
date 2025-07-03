@@ -14,6 +14,8 @@ import {
   FiFileText,
   FiUserCheck,
 } from 'react-icons/fi';
+import { FaHandHoldingUsd } from "react-icons/fa";
+import { FaClipboardList, FaFileInvoiceDollar } from "react-icons/fa6";
 import { BsHouse } from 'react-icons/bs';
 import Image from 'next/image';
 import styles from '../styles/Sidebar.module.css';
@@ -30,7 +32,14 @@ export default function Sidebar() {
   const modules = [
     { name: 'Home', icon: <BsHouse />, href: '/' },
     { name: 'Inventory', icon: <FiBox />, href: '/inventory' },
-    { name: 'Finance', icon: <FiDollarSign />, href: '/finance' },
+    { name: 'Finance',
+      icon: <FiDollarSign />, 
+      submodules: [
+        { name: 'Orders', href: '/finance/orders', icon: <FaClipboardList /> },
+        { name: 'Invoices', href: '/finance/invoices', icon: <FaFileInvoiceDollar /> },
+        { name: 'Pending to pay', href: '/finance/pending-to-pay', icon: <FaHandHoldingUsd /> },
+      ],
+    },
     { name: 'Sales', icon: <FiShoppingCart />, href: '/sales' },
     {
       name: 'Human Resources',
@@ -67,10 +76,10 @@ export default function Sidebar() {
 
         <Link href="/">
           <Image
-            src="/NitroDriveLogo.jpg"
+            src="/NitroDriveLogo4kpng.png"
             alt="NitroDrive Logo"
-            width={isCollapsed ? 0 : 150}
-            height={40}
+            width={isCollapsed ? 0 : 4096}
+            height={1224}
             className={styles.logo}
           />
         </Link>

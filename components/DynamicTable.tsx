@@ -1,7 +1,6 @@
 "use client";
 import { useState, useEffect, Dispatch, SetStateAction } from "react";
 import { FaEye, FaEdit, FaTrash } from "react-icons/fa";
-import { useRouter } from "next/navigation";
 
 type ColumnConfig = {
   key: string;
@@ -40,6 +39,7 @@ type Props = {
   data: RowData[] | FilteredProducts[];
   columns: ColumnConfig[];
   onSelectedRowsChange?: (selectedIds: string[]) => void;
+  onActiveChange?: (activeStates: { id: string; active: boolean }[]) => void;
   onDataChange?: (updatedData: RowData[]) => void;
   currentPage?: number;
   onPageChange?: Dispatch<SetStateAction<number>>;
@@ -55,17 +55,29 @@ type Props = {
     icon2?: React.ReactNode;
     icon3?: React.ReactNode;
   };
+  actions?: {
+    view?: boolean;
+    accept?: boolean;
+    cancel?: boolean;
+  };
 };
 
 export default function DynamicTable({
   data: initialData,
   columns,
   onSelectedRowsChange,
+  onActiveChange,
   onDataChange,
   actionHandlers,
   actionIcons,
+  actions = {
+    view: true,
+    accept: true,
+    cancel: true,
+  },
 }: Props) {
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
+  const [isActive, setIsActive] = useState<boolean | undefined>();
   const [data, setData] = useState<RowData[]>(initialData);
   const [currentPage, setCurrentPage] = useState(1);
   const rowsPerPage = 15;
@@ -79,17 +91,19 @@ export default function DynamicTable({
   const paginatedData = data.slice(startIndex, startIndex + rowsPerPage);
 
   useEffect(() => {
-  setData(initialData);
-}, [initialData]);
+    setData(initialData);
+  }, [initialData]);
 
   useEffect(() => {
-  setData(initialData);
-}, [initialData]);
-  
+    setData(initialData);
+  }, [initialData]);
+
+  useEffect(() => {
+    console.log("el estado es: " + isActive);
+  }, [isActive]);
+
   const toggleRow = (rowId: string) => {
-    const updated = selectedRows.includes(rowId)
-      ? selectedRows.filter((id) => id !== rowId)
-      : [...selectedRows, rowId];
+    const updated = selectedRows.includes(rowId) ? selectedRows.filter((id) => id !== rowId) : [...selectedRows, rowId];
 
     setSelectedRows(updated);
     if (onSelectedRowsChange) onSelectedRowsChange(updated);
@@ -98,15 +112,21 @@ export default function DynamicTable({
   const toggleActive = (rowId: string) => {
     const newData = data.map((row) => {
       if (row.id === rowId) {
-        return { ...row, active: !row.active };
+        const newActive = !row.active;
+        setIsActive(newActive);
+        return { ...row, active: newActive };
       }
       return row;
     });
+
     setData(newData);
     if (onDataChange) onDataChange(newData);
-  };
 
-  const router = useRouter();
+    const changedRow = newData.find((row) => row.id === rowId);
+    if (onActiveChange && changedRow) {
+      onActiveChange([{ id: rowId, active: changedRow.active as boolean }]);
+    }
+  };
 
   if (!data || data.length === 0) {
     return (
@@ -115,10 +135,7 @@ export default function DynamicTable({
           <thead>
             <tr className="bg-[#a01217] text-white">
               {columns.map((col) => (
-                <th
-                  key={col.key}
-                  className="px-4 py-2 text-left border-b border-black"
-                >
+                <th key={col.key} className="px-4 py-2 text-left border-b border-black">
                   {col.label}
                 </th>
               ))}
@@ -138,10 +155,7 @@ export default function DynamicTable({
         <thead>
           <tr className="bg-[#a01217] text-white">
             {columns.map((col) => (
-              <th
-                key={col.key}
-                className="px-4 py-2 text-left border-b border-black"
-              >
+              <th key={col.key} className="px-4 py-2 text-left border-b border-black">
                 {col.label}
               </th>
             ))}
@@ -152,60 +166,46 @@ export default function DynamicTable({
             const isSelected = selectedRows.includes(row.id);
 
             return (
-              <tr
-                key={idx}
-                className={`border-b border-black transition-all ${
-                  isSelected ? "bg-black/10" : "hover:bg-black/10"
-                }`}
-              >
+              <tr key={idx} className={`border-b border-black transition-all ${isSelected ? "bg-black/10" : "hover:bg-black/10"}`}>
                 {columns.map((col) => (
                   <td key={col.key} className="px-4 py-2">
                     {col.type === "checkbox" ? (
-                      <input
-                        type="checkbox"
-                        checked={isSelected}
-                        onChange={() => toggleRow(row.id)}
-                        className="w-5 h-5 accent-red-600"
-                      />
+                      <input type="checkbox" checked={isSelected} onChange={() => toggleRow(row.id)} className="w-5 h-5 accent-red-600" />
                     ) : col.type === "switch" ? (
                       <label className="relative inline-flex items-center cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={!!row.active}
-                          onChange={() => toggleActive(row.id)}
-                          className="sr-only peer"
-                        />
+                        <input type="checkbox" checked={!!row.active} onChange={() => toggleActive(row.id)} className="sr-only peer" />
                         <div className="w-11 h-6 bg-gray-400 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-[4px] after:bg-black after:border after:rounded-full after:h-5 after:w-5 after:transition-transform peer-checked:bg-[#a01217]"></div>
                       </label>
                     ) : col.type === "action" ? (
+
                       <div className="flex gap-2">
-                        <button
-                          onClick={() =>
-                            actionHandlers?.onView?.(row.id) ??
-                            router.push("/finance/pending-to-pay/" + row.id)
-                          }
-                          className="p-2 text-[#a01217] bg-[#a0121722] rounded-full hover:bg-[#a0121744]"
-                        >
-                          {actionIcons?.icon1 ?? <FaEye className="w-5 h-5" />}
-                        </button>
-                        <button
-                          onClick={() =>
-                            actionHandlers?.onAccept?.(row.id) ??
-                            alert(`Editar fila ${row.id}`)
-                          }
-                          className="p-2 text-[#a01217] bg-[#a0121722] rounded-full hover:bg-[#a0121744]"
-                        >
-                          {actionIcons?.icon2 ?? <FaEdit className="w-5 h-5" />}
-                        </button>
-                        <button
-                          onClick={() =>
-                            actionHandlers?.onCancel?.(row.id) ??
-                            alert(`Eliminar fila ${row.id}`)
-                          }
-                          className="p-2 text-[#a01217] bg-[#a0121722] rounded-full hover:bg-[#a0121744]"
-                        >
-                          {actionIcons?.icon3 ?? <FaTrash className="w-5 h-5" />}
-                        </button>
+
+                        {actions.view && (
+                          <button
+                            onClick={() => actionHandlers?.onView?.(row.id)}
+                            className="p-2 text-[#a01217] bg-[#a0121722] rounded-full hover:bg-[#a0121744]"
+                          >
+                            {actionIcons?.icon1 ?? <FaEye className="w-5 h-5" />}
+                          </button>
+                        )}
+
+                        {actions.accept && (
+                          <button
+                            onClick={() => actionHandlers?.onAccept?.(row.id)}
+                            className="p-2 text-[#a01217] bg-[#a0121722] rounded-full hover:bg-[#a0121744]"
+                          >
+                            {actionIcons?.icon2 ?? <FaEdit className="w-5 h-5" />}
+                          </button>
+                        )}
+
+                        {actions.cancel && (
+                          <button
+                            onClick={() => actionHandlers?.onCancel?.(row.id)}
+                            className="p-2 text-[#a01217] bg-[#a0121722] rounded-full hover:bg-[#a0121744]"
+                          >
+                            {actionIcons?.icon3 ?? <FaTrash className="w-5 h-5" />}
+                          </button>
+                        )}
                       </div>
                     ) : (
                       row[col.key]
@@ -218,29 +218,28 @@ export default function DynamicTable({
         </tbody>
       </table>
 
-{/* Pagination controls */}
-<div className="flex items-center justify-center mt-4 gap-4">
-  <button
-    onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-    disabled={currentPage === 1}
-    className={`px-4 py-2 rounded bg-[#a01217] text-white hover:bg-[#7f0e12] disabled:bg-gray-300`}
-  >
-    ‹
-  </button>
+      {/* Pagination controls */}
+      <div className="flex items-center justify-center mt-4 gap-4">
+        <button
+          onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+          disabled={currentPage === 1}
+          className={`px-4 py-2 rounded bg-[#a01217] text-white hover:bg-[#7f0e12] disabled:bg-gray-300`}
+        >
+          ‹
+        </button>
 
-  <span className="text-black">
-    Page {currentPage} of {totalPages}
-  </span>
+        <span className="text-black">
+          Page {currentPage} of {totalPages}
+        </span>
 
-  <button
-    onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
-    disabled={currentPage === totalPages}
-    className={`px-4 py-2 rounded bg-[#a01217] text-white hover:bg-[#7f0e12] disabled:bg-gray-300`}
-  >
-    ›
-  </button>
-</div>
-
+        <button
+          onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+          disabled={currentPage === totalPages}
+          className={`px-4 py-2 rounded bg-[#a01217] text-white hover:bg-[#7f0e12] disabled:bg-gray-300`}
+        >
+          ›
+        </button>
+      </div>
     </div>
   );
 }
