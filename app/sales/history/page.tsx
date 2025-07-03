@@ -45,8 +45,8 @@ interface Sale {
   total_items: number;
   subtotal: number;
   total: number;
-  client_name: string;
-  employee_name: string;
+  client_name?: string;
+  employee_name?: string;
   clients?: {
     client_id: number;
     client_type: string;
@@ -90,7 +90,7 @@ export default function SalesHistoryPage() {
     totalPages: 0
   });
   
-  // Cargar ventas
+  // Cargar ventas - CORREGIDO: usar endpoint correcto
   const loadSales = async () => {
     setLoading(true);
     try {
@@ -103,7 +103,8 @@ export default function SalesHistoryPage() {
         ...(dateTo && { date_to: dateTo })
       });
 
-      const response = await fetch(`/api/sales/sales_returns?${params}`);
+      // CAMBIO PRINCIPAL: usar /api/sales/selling en lugar de /api/sales/sales_returns
+      const response = await fetch(`/api/sales/selling?${params}`);
       const data = await response.json();
 
       if (response.ok) {
@@ -256,6 +257,18 @@ export default function SalesHistoryPage() {
     return true;
   };
 
+  // Función para obtener el nombre del cliente - CORREGIDA
+  const getClientName = (sale: Sale) => {
+    if (sale.clients) {
+      if (sale.clients.client_type === 'Business') {
+        return sale.clients.business_name || 'Unknown Business';
+      } else {
+        return `${sale.clients.first_name || ''} ${sale.clients.last_name || ''}`.trim() || 'Unknown Individual';
+      }
+    }
+    return sale.client_name || 'Anonymous';
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-gray-100 to-gray-50 p-4">
       {/* Message Alert */}
@@ -392,7 +405,7 @@ export default function SalesHistoryPage() {
                             <User size={16} className="text-blue-600" />
                           )}
                           <span className="truncate max-w-[200px]">
-                            {sale.client_name || 'Anonymous'}
+                            {getClientName(sale)}
                           </span>
                         </div>
                       </td>
@@ -471,7 +484,7 @@ export default function SalesHistoryPage() {
                       ) : (
                         <User size={16} className="text-blue-600" />
                       )}
-                      <span>{sale.client_name || 'Anonymous'}</span>
+                      <span>{getClientName(sale)}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Package size={16} className="text-gray-400" />
@@ -615,7 +628,7 @@ export default function SalesHistoryPage() {
                 </div>
                 <div>
                   <p className="text-sm font-medium text-gray-600">Customer</p>
-                  <p className="text-sm">{selectedSale.client_name || 'Anonymous'}</p>
+                  <p className="text-sm">{getClientName(selectedSale)}</p>
                 </div>
                 <div>
                   <p className="text-sm font-medium text-gray-600">Payment Method</p>
