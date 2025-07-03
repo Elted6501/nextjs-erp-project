@@ -1,7 +1,7 @@
 // app/employees/page.tsx
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Button from '@/components/Button';
 import Dropdown from '@/components/Dropdown';
 import DynamicTable from '@/components/DynamicTable';
@@ -10,6 +10,7 @@ import AlertDialog from '@/components/AlertDialog';
 import { PermissionsGate } from '@/app/components/PermissionsGate';
 import { FaSearch } from "react-icons/fa";
 
+// Employee interface for table data
 interface Employee {
   id: string;
   fullName: string;
@@ -20,11 +21,15 @@ interface Employee {
   scheduleStart: string;
   scheduleEnd: string;
   active: boolean;
-  roleIds?: string[];
+  roleIds?: (string | number)[];
   roleNames?: string[];
-  [key: string]: undefined | string | boolean | string[];
+  firstName?: string;
+  lastname?: string;
+  birthDate?: string;
+  [key: string]: undefined | string | boolean | (string | number)[];
 }
 
+// Raw employee interface as returned from API
 interface RawEmployee {
   employee_id: string;
   first_name: string;
@@ -36,32 +41,50 @@ interface RawEmployee {
   employee_schedule_start: string;
   employee_schedule_end: string;
   active?: boolean;
-  role_ids?: string[];
+  role_ids?: (string | number)[];
   role_names?: string[];
+  birth_date?: string;
 }
 
+// Form data interface for employee modal
 interface EmployeeFormData {
-  [key: string]: string | boolean | undefined | string[];
+  [key: string]: string | boolean | undefined | (string | number)[];
 }
 
+// Role dropdown option interface
 interface RoleOption {
   label: string;
   value: string;
 }
 
 export default function EmployeesPage() {
+  // State for employees list
   const [employees, setEmployees] = useState<Employee[]>([]);
+  // State for selected row IDs (checkboxes)
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  // State for modal visibility
   const [showModal, setShowModal] = useState(false);
+  // State for fields to show in modal
   const [fieldsData, setFieldsData] = useState<string[]>([]);
+  // State for modal title
   const [modalTitle, setModalTitle] = useState('');
+  // State for status filter
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
+  // State for role filter
+  const [selectedRole, setSelectedRole] = useState<string>('all'); 
+  // State for currently editing employee
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
+  // State for alert dialog visibility
   const [showAlert, setShowAlert] = useState(false);
+  // State for available roles
   const [roles, setRoles] = useState<RoleOption[]>([]);
+  // State for search text
   const [searchText, setSearchText] = useState('');
 
-  // Nueva función para refrescar empleados
+  // Ref for the select-all checkbox in the table header
+  const selectAllRef = useRef<HTMLInputElement>(null);
+
+  // Fetch employees from API and map to Employee interface
   const fetchEmployees = async () => {
     const res = await fetch('/api/human-resources/employees');
     const data: RawEmployee[] = await res.json();
@@ -77,11 +100,14 @@ export default function EmployeesPage() {
       active: !!emp.active,
       roleIds: emp.role_ids || [],
       roleNames: emp.role_names || [],
+      firstName: emp.first_name,
+      lastname: emp.last_name,
+      birthDate: emp.birth_date,
     }));
     setEmployees(mapped);
   };
 
-  // Define form fields dynamically
+  // Build the fields for the dynamic form modal based on the selected fields
   const fields: Field[] = fieldsData.map((item) => {
     const lower = item.toLowerCase();
     if (lower === 'birth date' || lower === 'hire date') {
@@ -91,28 +117,39 @@ export default function EmployeesPage() {
       return { name: lower, label: item, type: 'time' };
     }
     if (lower === 'role') {
-      return { name: 'role', label: 'Roles', type: 'multiselect', options: roles };
+      return { name: 'role', label: 'Roles', type: 'multiselect', options: roles as { label: string; value: string }[] };
     }
     return { name: lower, label: item, type: 'text' };
   });
 
+  // Arrays for add/update modal fields
   const updateArray = [
-    'Email', 'Phone Number', 'Address', 'Schedule Start', 'Schedule End', 'Password', 'Role'
+    'First Name', 'Lastname', 'Email', 'Phone Number', 'Address', 'Birth Date', 'Hire Date', 'Schedule Start', 'Schedule End', 'Password', 'Role'
   ];
   const addArray = [
     'First Name', 'Lastname', 'Email', 'Phone Number', 'Address', 'Birth Date', 'Hire Date', 'Password', 'Schedule Start', 'Schedule End', 'Role'
   ];
 
+  // Fetch employees and roles on mount
   useEffect(() => {
     fetchEmployees();
-    // Fetch roles
+    // Fetch roles for dropdown
     fetch('/api/human-resources/roles')
       .then(res => res.json())
-      .then((data: { role_id: string; role_name: string }[]) => {
-        setRoles(data.map(r => ({ label: r.role_name, value: r.role_id })));
+      .then((data: { role_id: string | number; role_name: string }[]) => {
+        setRoles(data.map(r => ({ label: r.role_name, value: String(r.role_id) })));
       });
   }, []);
 
+  // Set indeterminate state for select-all checkbox
+  useEffect(() => {
+    if (selectAllRef.current) {
+      selectAllRef.current.indeterminate =
+        selectedIds.length > 0 && selectedIds.length < filteredEmployees.length;
+    }
+  }, [selectedIds, employees.length]); // filteredEmployees is declared after
+
+  // Open modal for add or update employee
   const handleOpenModal = (fieldArray: string[], title: string, employee?: Employee) => {
     setFieldsData(fieldArray);
     setModalTitle(title);
@@ -120,6 +157,7 @@ export default function EmployeesPage() {
     setEditingEmployee(employee || null);
   };
 
+  // Handle add or update employee form submission
   const handleAddOrUpdateEmployee = async (formData: EmployeeFormData) => {
     const {
       'first name': first_name,
@@ -135,39 +173,39 @@ export default function EmployeesPage() {
       role,
     } = formData;
 
-    // Si es edición, mergea los roles actuales con los seleccionados si no se envió el campo role
+    // Build role_ids array from form data
     let role_ids: string[] = [];
-    if (editingEmployee) {
-      if (typeof role === "undefined") {
-        role_ids = editingEmployee.roleIds || [];
-      } else {
-        role_ids = Array.isArray(role)
-          ? role.filter((r): r is string => typeof r === 'string')
-          : typeof role === 'string'
-            ? [role]
-            : [];
-      }
-    } else {
-      role_ids = Array.isArray(role)
-        ? role.filter((r): r is string => typeof r === 'string')
-        : role
-          ? [role].filter((r): r is string => typeof r === 'string')
-          : [];
+    if (Array.isArray(role)) {
+      role_ids = role
+        .filter(r => typeof r === 'string' || typeof r === 'number')
+        .map(r => String(r));
+    } else if (
+      role !== undefined &&
+      role !== null &&
+      (typeof role === 'string' || typeof role === 'number')
+    ) {
+      role_ids = [String(role)];
     }
 
     if (editingEmployee) {
+      // Update employee
+      const updateBody: any = {
+        email,
+        phone_number,
+        address,
+        employee_schedule_start,
+        employee_schedule_end,
+        role_ids,
+      };
+      // Only add password if provided
+      if (typeof password === 'string' && password.trim() !== "") {
+        updateBody.password = password;
+      }
+
       const res = await fetch(`/api/human-resources/employees/${editingEmployee.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email,
-          phone_number,
-          address,
-          employee_schedule_start,
-          employee_schedule_end,
-          password,
-          role_ids,
-        }),
+        body: JSON.stringify(updateBody),
       });
 
       if (!res.ok) {
@@ -178,6 +216,7 @@ export default function EmployeesPage() {
       await fetchEmployees();
       setEditingEmployee(null);
     } else {
+      // Add new employee
       const res = await fetch('/api/human-resources/employees', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -207,6 +246,7 @@ export default function EmployeesPage() {
     setShowModal(false);
   };
 
+  // Handle delete employees
   const handleDelete = async () => {
     if (selectedIds.length === 0) return;
 
@@ -225,10 +265,12 @@ export default function EmployeesPage() {
     setSelectedIds([]);
   };
 
+  // Handle row selection change
   const handleSelectionChange = (ids: string[]) => {
     setSelectedIds(ids);
   };
 
+  // Handle active status change for employees
   const handleActiveChange = async (activeStates: { id: string; active: boolean }[]) => {
     const res = await fetch('/api/human-resources/employees', {
       method: 'PUT',
@@ -244,7 +286,8 @@ export default function EmployeesPage() {
     await fetchEmployees();
   };
 
-  // FILTER: status + search
+  // FILTER: status + search + role
+  // Filter employees by status, search text, and role
   const filteredEmployees = employees.filter(emp => {
     // Status filter
     const statusOk =
@@ -259,11 +302,35 @@ export default function EmployeesPage() {
       emp.email?.toLowerCase().includes(searchText.toLowerCase()) ||
       emp.phoneNumber?.toLowerCase().includes(searchText.toLowerCase());
 
-    return statusOk && searchOk;
+    // Role filter
+    const roleOk =
+      selectedRole === 'all' ||
+      (Array.isArray(emp.roleIds) && emp.roleIds.map(String).includes(selectedRole));
+
+    return statusOk && searchOk && roleOk;
   });
 
+  // Table column configuration, including select-all checkbox in header
   const columnConfig = [
-    { key: 'select', label: '', type: 'checkbox' },
+    {
+      key: 'select',
+      label: (
+        <input
+          ref={selectAllRef}
+          type="checkbox"
+          checked={filteredEmployees.length > 0 && selectedIds.length === filteredEmployees.length}
+          onChange={e => {
+            if (e.target.checked) {
+              setSelectedIds(filteredEmployees.map(emp => emp.id));
+            } else {
+              setSelectedIds([]);
+            }
+          }}
+          className="w-5 h-5 accent-red-600"
+        />
+      ),
+      type: 'checkbox'
+    },
     { key: 'fullName', label: 'Full Name', type: 'text' },
     { key: 'email', label: 'Email', type: 'text' },
     { key: 'phoneNumber', label: 'Phone Number', type: 'text' },
@@ -278,6 +345,7 @@ export default function EmployeesPage() {
   return (
     <PermissionsGate requiredPermission="hr.view">
       <div className="min-h-screen bg-[#ecebeb] p-6 space-y-6">
+        {/* Header and filter controls */}
         <div className="flex justify-between items-center mb-4 flex-wrap gap-4">
           <h1 className="text-2xl font-bold text-[#a01217]">Employees</h1>
           <div className="flex gap-2 items-center">
@@ -292,6 +360,7 @@ export default function EmployeesPage() {
                 onChange={e => setSearchText(e.target.value)}
               />
             </div>
+            {/* Status filter dropdown */}
             <Dropdown
               options={[
                 { label: 'Filter by status', value: 'all' },
@@ -302,18 +371,31 @@ export default function EmployeesPage() {
               value={selectedStatus}
               onSelect={setSelectedStatus}
             />
+            {/* Role filter dropdown */}
+            <Dropdown
+              options={[
+                { label: 'Filter by role', value: 'all' },
+                ...roles
+              ]}
+              placeholder="Filter by Role"
+              value={selectedRole}
+              onSelect={setSelectedRole}
+            />
+            {/* Clear filters button */}
             <Button
               label="Clear Filters"
               onClick={() => {
                 setSelectedStatus('all');
+                setSelectedRole('all');
                 setSearchText('');
               }}
             />
+            {/* Add employee button */}
             <Button label="Add Employee" onClick={() => handleOpenModal(addArray, 'Add Employee')} />
           </div>
         </div>
 
-        {/* Modal outside the filter block */}
+        {/* Modal for add/update employee */}
         {showModal && (
           <DynamicFormModal
             title={modalTitle}
@@ -324,13 +406,29 @@ export default function EmployeesPage() {
             }}
             fields={fields}
             onSubmit={handleAddOrUpdateEmployee}
-            initialData={editingEmployee}
+            initialData={
+              editingEmployee
+                ? {
+                    'first name': editingEmployee.firstName || editingEmployee.fullName?.split(' ')[0] || '',
+                    'lastname': editingEmployee.lastname || editingEmployee.fullName?.split(' ')[1] || '',
+                    'email': editingEmployee.email,
+                    'phone number': editingEmployee.phoneNumber,
+                    'address': editingEmployee.address,
+                    'birth date': editingEmployee.birthDate,
+                    'hire date': editingEmployee.hireDate,
+                    'schedule start': editingEmployee.scheduleStart,
+                    'schedule end': editingEmployee.scheduleEnd,
+                    'password': '',
+                    'role': (editingEmployee.roleIds || []).map(String),
+                  }
+                : undefined
+            }
           />
         )}
 
+        {/* Dynamic table with employees */}
         <DynamicTable
           data={filteredEmployees.map(emp => {
-            // Exclude roleIds to satisfy RowData type
             const { roleIds, ...rest } = emp;
             return {
               ...rest,
@@ -340,8 +438,10 @@ export default function EmployeesPage() {
           columns={columnConfig}
           onSelectedRowsChange={handleSelectionChange}
           onActiveChange={handleActiveChange}
+          selectedRowIds={selectedIds}
         />
 
+        {/* Alert dialog for delete confirmation */}
         {showAlert && (
           <AlertDialog
             title="Confirm deletion"
@@ -360,6 +460,7 @@ export default function EmployeesPage() {
           />
         )}
 
+        {/* Action buttons for selected rows */}
         {selectedIds.length > 0 && (
           <div className="flex justify-end">
             <Button
@@ -376,8 +477,6 @@ export default function EmployeesPage() {
                   if (emp) {
                     handleOpenModal(updateArray, 'Update Employee', emp);
                   }
-                } else {
-                  alert('Select only one employee to update.');
                 }
               }}
             />

@@ -2,22 +2,26 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import bcrypt from "bcryptjs";
 
+// API route to update an employee by ID
 export async function PUT(request: Request, context: { params: { id: string } }) {
+  // Create a Supabase client instance
   const supabase = await createClient();
-  const { id } = await context.params;
+  // Extract employee ID from route params
+  const { id } = context.params;
+  // Parse request body
   const body = await request.json();
 
-  // Extrae los roles del body y quítalos del objeto de actualización
+  // Extract roles from the body and remove from update object
   const role_ids = body.role_ids || [];
   delete body.role_ids;
 
-  // Si se está actualizando la contraseña, hashea la contraseña y fuerza must_change_password a true
+  // If updating password, hash it and force must_change_password to true
   if (body.password) {
     body.password = await bcrypt.hash(body.password, 10);
     body.must_change_password = true;
   }
 
-  // Actualiza los datos del empleado
+  // Update employee data in the database
   const { data, error } = await supabase
     .from("employees")
     .update(body)
@@ -25,15 +29,15 @@ export async function PUT(request: Request, context: { params: { id: string } })
     .select()
     .single();
 
+  // Handle errors from the update
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  // Actualiza los roles en la tabla intermedia
-  // 1. Borra los roles actuales
+  // Delete all current roles for the employee
   await supabase.from("employee_roles").delete().eq("employee_id", id);
 
-  // 2. Inserta los nuevos roles
+  // Insert the new selected roles (if any)
   for (const role_id of role_ids) {
     await supabase.from("employee_roles").insert({
       employee_id: id,
@@ -41,5 +45,6 @@ export async function PUT(request: Request, context: { params: { id: string } })
     });
   }
 
+  // Return the updated employee data
   return NextResponse.json(data);
 }

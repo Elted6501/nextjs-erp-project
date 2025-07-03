@@ -9,6 +9,7 @@ import {
   FiFileText,
 } from 'react-icons/fi';
 
+// List of all HR submodules with their metadata and required permissions
 const allSubmodules = [
    {
        name: 'Employees',
@@ -48,8 +49,10 @@ const allSubmodules = [
 ];
 
 export default function HumanResourcesPage() {
+   // Get permission helper and loading state from custom hook
    const { hasPermission, isLoading } = usePermissions();
 
+   // Show loading spinner while permissions are loading
    if (isLoading) {
        return (
            <div className="flex justify-center items-center h-screen bg-[#ecebeb]">
@@ -58,8 +61,10 @@ export default function HumanResourcesPage() {
        );
    }
 
+   // Filter submodules by user permissions (or admin)
    const submodules = allSubmodules.filter(mod => hasPermission(mod.permission) || hasPermission('system.admin'));
 
+  // Render the HR dashboard with available submodules
   return (
     <main className="min-h-screen bg-[#ecebeb] flex flex-col items-center pt-16 px-4">
       <h1 className="text-4xl font-bold text-[#a01217] mb-10 tracking-tight text-center">

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Button from '@/components/Button';
 import DynamicTable from '@/components/DynamicTable';
 import { createClient } from '@supabase/supabase-js';
@@ -14,7 +14,7 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
-const columns = [
+const baseColumns = [
   { key: 'select', label: '', type: 'checkbox' },
   { key: 'date', label: 'Date', type: 'text' },
   { key: 'employeeName', label: 'Employee Name', type: 'text' },
@@ -48,11 +48,13 @@ export default function AttendancePage() {
   const [employeeOptions, setEmployeeOptions] = useState<EmployeeOption[]>([]);
   const [selectedEmployee, setSelectedEmployee] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState<string>('');
-  const [searchText, setSearchText] = useState(''); // NUEVO
+  const [searchText, setSearchText] = useState('');
 
   const [showModal, setShowModal] = useState(false);
   const [fieldsData, setFieldsData] = useState<string[]>([]);
   const [modalTitle, setModalTitle] = useState('');
+
+  const selectAllRef = useRef<HTMLInputElement>(null);
 
   const fields: Field[] = fieldsData.map((item) => ({
     name: item.toLowerCase(),
@@ -148,6 +150,14 @@ export default function AttendancePage() {
       )
   );
 
+  // Indeterminate para el checkbox de encabezado
+  useEffect(() => {
+    if (selectAllRef.current) {
+      selectAllRef.current.indeterminate =
+        selectedIds.length > 0 && selectedIds.length < filteredAttendance.length;
+    }
+  }, [selectedIds, filteredAttendance.length]);
+
   // Render action buttons for each row
   const renderActions = (row: AttendanceRecord) => (
     <div className="flex gap-2">
@@ -164,9 +174,28 @@ export default function AttendancePage() {
     </div>
   );
 
-  // Adapt columns for DynamicTable
-  const tableColumns = columns.map(col =>
-    col.key === 'actions'
+  // Adapt columns for DynamicTable, agregando el checkbox de encabezado
+  const tableColumns = baseColumns.map(col =>
+    col.key === 'select'
+      ? {
+          ...col,
+          label: (
+            <input
+              ref={selectAllRef}
+              type="checkbox"
+              checked={filteredAttendance.length > 0 && selectedIds.length === filteredAttendance.length}
+              onChange={e => {
+                if (e.target.checked) {
+                  setSelectedIds(filteredAttendance.map(a => a.id));
+                } else {
+                  setSelectedIds([]);
+                }
+              }}
+              className="w-5 h-5 accent-red-600"
+            />
+          ),
+        }
+      : col.key === 'actions'
       ? { ...col, render: renderActions }
       : col
   );
@@ -282,6 +311,7 @@ export default function AttendancePage() {
         data={filteredAttendance}
         columns={tableColumns}
         onSelectedRowsChange={setSelectedIds}
+        selectedRowIds={selectedIds}
       />
 
       {selectedIds.length > 0 && (

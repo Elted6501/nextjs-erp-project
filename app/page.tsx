@@ -3,6 +3,7 @@ import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import { usePermissions } from "./hooks/usePermissions";
 
+// List of all main modules with their metadata and required permissions
 const modules = [
    {
        name: "Finance Module",
@@ -42,8 +43,10 @@ const modules = [
 ];
 
 export default function Home() {
+   // Get permission helper and loading state from custom hook
    const { hasPermission, isLoading } = usePermissions();
 
+   // Show loading spinner while permissions are loading
    if (isLoading) {
        return (
            <div className="flex justify-center items-center h-screen bg-black">
@@ -59,6 +62,7 @@ export default function Home() {
       <div className="absolute bottom-0 right-0 w-96 h-96 bg-gradient-to-tl from-red-500/15 to-red-600/8 rounded-full blur-3xl transform translate-x-1/2 translate-y-1/2"></div>
       <div className="absolute top-1/2 left-1/2 w-80 h-80 bg-gradient-to-r from-red-800/10 to-red-500/5 rounded-full blur-3xl transform -translate-x-1/2 -translate-y-1/2"></div>
       
+      {/* Main navigation bar */}
       <Navbar />
       
       <div className="flex flex-col items-center justify-center px-4 pt-32 pb-16 relative z-10">
@@ -75,34 +79,36 @@ export default function Home() {
         </div>
 
         {/* Module Cards Grid */}
-          <div className="flex flex-wrap justify-center gap-6 w-full max-w-8xl mx-auto">
-            {modules.filter(module => hasPermission(module.permission) || hasPermission('system.admin')).map(module => (
-                <Link
-                    key={module.name}
-                    href={module.href}
-                    className="w-[300px] group relative p-8 bg-white/95 backdrop-blur-sm rounded-3xl shadow-lg hover:shadow-2xl transition-all duration-500 border border-gray-200/50 hover:border-red-300/50 transform hover:-translate-y-2 hover:scale-105 overflow-hidden"
-      
-                >
-                    <div className="absolute inset-0 bg-gradient-to-br from-red-600/10 to-red-700/15 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                    <div className="relative z-10">
-                        <div className="w-16 h-16 bg-gradient-to-br from-red-800 to-red-600 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
-                            {module.icon}
-                        </div>
-                        <h2 className="text-2xl font-bold text-gray-900 mb-3 group-hover:text-red-700 transition-colors duration-300">
-                            {module.name}
-                        </h2>
-                        <p className="text-gray-600 leading-relaxed group-hover:text-gray-700 transition-colors duration-300">
-                            {module.description}
-                        </p>
-                    </div>
-                </Link>
+        <div className="flex flex-wrap justify-center gap-6 w-full max-w-8xl mx-auto">
+          {modules
+            .filter(module => hasPermission(module.permission) || hasPermission('system.admin'))
+            .map(module => (
+              <Link
+                key={module.name}
+                href={module.href}
+                className="w-[300px] group relative p-8 bg-white/95 backdrop-blur-sm rounded-3xl shadow-lg hover:shadow-2xl transition-all duration-500 border border-gray-200/50 hover:border-red-300/50 transform hover:-translate-y-2 hover:scale-105 overflow-hidden"
+              >
+                <div className="absolute inset-0 bg-gradient-to-br from-red-600/10 to-red-700/15 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                <div className="relative z-10">
+                  <div className="w-16 h-16 bg-gradient-to-br from-red-800 to-red-600 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
+                    {module.icon}
+                  </div>
+                  <h2 className="text-2xl font-bold text-gray-900 mb-3 group-hover:text-red-700 transition-colors duration-300">
+                    {module.name}
+                  </h2>
+                  <p className="text-gray-600 leading-relaxed group-hover:text-gray-700 transition-colors duration-300">
+                    {module.description}
+                  </p>
+                </div>
+              </Link>
             ))}
-          </div>
+        </div>
               
-        {/* Call to Action */}
+        {/* Call to Action (optional) */}
 
       </div>
 
+      {/* Animation for fade-in-up effect */}
       <style jsx>{`
         @keyframes fade-in-up {
           from {

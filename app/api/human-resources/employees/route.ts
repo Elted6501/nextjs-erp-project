@@ -118,22 +118,26 @@ export async function DELETE(request: Request) {
 }
 
 export async function PUT(request: Request) {
+  // Create a Supabase client instance
   const supabase = await createClient();
+  // Parse the updates array from the request body
   const { updates } = await request.json();
 
+  // Validate that updates is a non-empty array
   if (!Array.isArray(updates) || updates.length === 0) {
     return NextResponse.json({ error: "No updates provided" }, { status: 400 });
   }
 
+  // For each update, update the employee's active status and roles if provided
   const updatePromises = updates.map(async (u) => {
-    // Actualiza datos básicos
+    // Update the employee's active status
     await supabase.from("employees").update({ active: u.active }).eq("employee_id", u.id);
 
-    // Si hay roles, actualiza la tabla intermedia
+    // If role_ids are provided, update the employee_roles table
     if (u.role_ids) {
-      // Borra roles actuales
+      // Delete current roles for the employee
       await supabase.from("employee_roles").delete().eq("employee_id", u.id);
-      // Inserta nuevos roles
+      // Insert new roles for the employee
       for (const role_id of u.role_ids) {
         await supabase.from("employee_roles").insert({
           employee_id: u.id,
@@ -143,7 +147,9 @@ export async function PUT(request: Request) {
     }
   });
 
+  // Wait for all updates to complete
   await Promise.all(updatePromises);
 
+  // Respond with success
   return NextResponse.json({ success: true });
 }

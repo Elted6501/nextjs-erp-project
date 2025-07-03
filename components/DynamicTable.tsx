@@ -4,7 +4,7 @@ import { FaEye, FaEdit, FaTrash } from "react-icons/fa";
 
 type ColumnConfig = {
   key: string;
-  label: string;
+  label: string | React.ReactNode;
   type: string;
 };
 
@@ -55,6 +55,7 @@ type Props = {
     icon2?: React.ReactNode;
     icon3?: React.ReactNode;
   };
+  selectedRowIds?: string[];
 };
 
 export default function DynamicTable({
@@ -65,8 +66,9 @@ export default function DynamicTable({
   onDataChange,
   actionHandlers,
   actionIcons,
+  selectedRowIds, // <-- Añadido
 }: Props) {
-  const [selectedRows, setSelectedRows] = useState<string[]>([]);
+  const [selectedRows, setSelectedRows] = useState<string[]>(selectedRowIds || []);
   const [isActive, setIsActive] = useState<boolean | undefined>();
   const [data, setData] = useState<RowData[]>(initialData);
   const [currentPage, setCurrentPage] = useState(1);
@@ -76,15 +78,22 @@ export default function DynamicTable({
     setData(initialData);
   }, [initialData]);
 
+  // Sincroniza selección controlada desde el padre
+  useEffect(() => {
+    if (selectedRowIds) setSelectedRows(selectedRowIds);
+  }, [selectedRowIds]);
+
   const totalPages = Math.ceil(data.length / rowsPerPage);
   const startIndex = (currentPage - 1) * rowsPerPage;
   const paginatedData = data.slice(startIndex, startIndex + rowsPerPage);
 
   const toggleRow = (rowId: string) => {
-    const updated = selectedRows.includes(rowId)
-      ? selectedRows.filter((id) => id !== rowId)
-      : [...selectedRows, rowId];
-
+    let updated: string[];
+    if (selectedRows.includes(rowId)) {
+      updated = selectedRows.filter((id) => id !== rowId);
+    } else {
+      updated = [...selectedRows, rowId];
+    }
     setSelectedRows(updated);
     if (onSelectedRowsChange) onSelectedRowsChange(updated);
   };
@@ -172,7 +181,7 @@ export default function DynamicTable({
                     {col.type === "checkbox" ? (
                       <input
                         type="checkbox"
-                        checked={isSelected}
+                        checked={selectedRows?.includes(row.id)}
                         onChange={() => toggleRow(row.id)}
                         className="w-5 h-5 accent-red-600"
                       />

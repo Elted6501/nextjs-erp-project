@@ -4,23 +4,31 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import './login.css';
 
+// Login component for user authentication
 function Login() {
+  // State for username (email) input
   const [username, setUsername] = useState('');
+  // State for password input
   const [password, setPassword] = useState('');
+  // State to toggle password visibility
   const [showPassword, setShowPassword] = useState(false);
+  // Next.js router for navigation
   const router = useRouter();
-  const [animationType, setAnimationType] = useState<'' | 'glow' >('');
-  
+  // State for button animation
+  const [animationType, setAnimationType] = useState<'' | 'glow'>('');
 
+  // Redirect to home if already logged in (token exists)
   useEffect(() => {
     if (document.cookie.includes('token=')) {
       router.push('/');
     }
   }, [router]);
 
+  // Handle login form submission
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      // Send login request to API
       const res = await fetch('/api/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -30,16 +38,18 @@ function Login() {
       const data = await res.json();
 
       if (res.ok && data.mustChangePassword) {
-        // Redirige a la vista de cambio de contraseña, pasando el userId por query
+        // Redirect to change password page if required
         router.push(`/change-password?userId=${data.userId}`);
         return;
       }
 
       if (res.ok) {
+        // On successful login, redirect to home
         const { token } = data;
         console.log('Received JWT:', token);
         router.push('/');
       } else {
+        // Show error message
         alert(data.error || 'Invalid credentials');
       }
     } catch (err) {
@@ -48,6 +58,7 @@ function Login() {
     }
   };
 
+  // Typewriter effect for welcome messages
   useEffect(() => {
     const texts = ['Welcome', 'Bienvenido', 'Bienvenue', 'Bem-vindo', '欢迎'];
     const typingElement = document.querySelector('.typewriter-text');
@@ -84,6 +95,7 @@ function Login() {
     type();
   }, []);
 
+  // Render login form
   return (
     <div className="login-container">
       <Image src="/logo4k.png" alt="NitroDrive Logo" className="login-logo" width={1228} height={772} />
