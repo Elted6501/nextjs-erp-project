@@ -47,7 +47,12 @@ export function useProductMovements(
   shouldDelete: boolean,
   setSelectedIds: (ids: string[]) => void,
   setShouldDelete: (show: boolean) => void,
-
+  setWarehouseOptions: (options: {label: string, value: string}[]) => void,
+  setSupplierOptions: (options: {label: string, value: string}[]) => void,
+  setCategoryOptions: (options: {label: string, value: string}[]) => void
+  /* setWarehouseApiList: (list: string[]) => void,
+  setCategoryApiList: (list: string[]) => void,
+  setSupplierApiList: (list: string[]) => void */
 
 ) {
   useEffect(() => {
@@ -81,6 +86,90 @@ export function useProductMovements(
         }
       );
   }, [setTableData]);
+
+  // Dentro de useProductMovements, después del primer useEffect
+useEffect(() => {
+  // Obtener warehouses
+  fetch('/api/inventory/warehouses')
+    .then(res => res.json())
+    .then(data => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const options = data.map((item: any) => ({
+        label: item.name,
+        value: item.warehouse_id.toString()
+      }));
+      setWarehouseOptions(options);
+    });
+
+  // Obtener suppliers
+  fetch('/api/inventory/suppliers')
+    .then(res => res.json())
+    .then(data => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const options = data.map((item: any) => ({
+        label: item.name,
+        value: item.supplier_id.toString()
+      }));
+      setSupplierOptions(options);
+    });
+
+  // Obtener categories
+  fetch('/api/inventory/categories')
+    .then(res => res.json())
+    .then(data => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const options = data.map((item: any) => ({
+        label: item.name,
+        value: item.category_id.toString()
+      }));
+      setCategoryOptions(options);
+    });
+}, [setWarehouseOptions, setSupplierOptions, setCategoryOptions]);
+
+  /* useEffect(() => {
+    fetch('/api/inventory/warehouses')
+    .then(res => res.json())
+    .then(
+        (data) => {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const transformed = data.map((item: any) => ({
+            warehouse_id: item.warehouse_id,
+            name: item.name
+          }));
+          setWarehouseApiList(transformed);
+        }
+    )
+  },[setWarehouseApiList]);
+
+  useEffect(() => {
+    fetch('/api/inventory/category')
+    .then(res => res.json())
+    .then(
+        (data) => {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const transformed = data.map((item: any) => ({
+            category_id: item.category_id,
+            name: item.name
+          }));
+          setCategoryApiList(transformed);
+        }
+    )
+  },[setCategoryApiList]);
+
+  useEffect(() => {
+    fetch('/api/inventory/suppliers')
+    .then(res => res.json())
+    .then(
+        (data) => {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const transformed = data.map((item: any) => ({
+            supplier_id: item.supplier_id,
+            name: item.name
+          }));
+          setSupplierApiList(transformed);
+        }
+    )
+  },[setSupplierApiList]); */
 
   useEffect(() => {
     let filtered = [...tableData];
