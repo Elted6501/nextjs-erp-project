@@ -1,27 +1,24 @@
-'use client';
+"use client";
 
-import { useEffect, useRef, useState } from 'react';
-import Button from '@/components/Button';
-import DynamicTable from '@/components/DynamicTable';
-import { createClient } from '@supabase/supabase-js';
-import DynamicFormModal, { Field } from '@/components/DynamicFormModal';
-import * as XLSX from 'xlsx';
+import { useEffect, useRef, useState } from "react";
+import Button from "@/components/Button";
+import DynamicTable from "@/components/DynamicTable";
+import { createClient } from "@/lib/supabase/server"; // Adjust the import path as necessary
+import DynamicFormModal, { Field } from "@/components/DynamicFormModal";
+import * as XLSX from "xlsx";
 import { FaSearch } from "react-icons/fa";
 
 // Configura tu cliente de Supabase
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+const supabase = await createClient();
 
 const baseColumns = [
-  { key: 'select', label: '', type: 'checkbox' },
-  { key: 'date', label: 'Date', type: 'text' },
-  { key: 'employeeName', label: 'Employee Name', type: 'text' },
-  { key: 'clockIn', label: 'Clock In', type: 'text' },
-  { key: 'clockOut', label: 'Clock Out', type: 'text' },
-  { key: 'status', label: 'Status', type: 'text' },
-  { key: 'notes', label: 'Notes', type: 'text' },
+  { key: "select", label: "", type: "checkbox" },
+  { key: "date", label: "Date", type: "text" },
+  { key: "employeeName", label: "Employee Name", type: "text" },
+  { key: "clockIn", label: "Clock In", type: "text" },
+  { key: "clockOut", label: "Clock Out", type: "text" },
+  { key: "status", label: "Status", type: "text" },
+  { key: "notes", label: "Notes", type: "text" },
 ];
 
 type AttendanceRecord = {
@@ -47,23 +44,23 @@ export default function AttendancePage() {
   const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
 
   const [selectedEmployee, setSelectedEmployee] = useState<string | null>(null);
-  const [selectedDate, setSelectedDate] = useState<string>('');
-  const [searchText, setSearchText] = useState('');
+  const [selectedDate, setSelectedDate] = useState<string>("");
+  const [searchText, setSearchText] = useState("");
 
   const [showModal, setShowModal] = useState(false);
   const [fieldsData, setFieldsData] = useState<string[]>([]);
-  const [modalTitle, setModalTitle] = useState('');
+  const [modalTitle, setModalTitle] = useState("");
 
   const selectAllRef = useRef<HTMLInputElement>(null);
 
   const fields: Field[] = fieldsData.map((item) => ({
     name: item.toLowerCase(),
-    label: item === 'ClockIn' ? 'Clock In' : item === 'ClockOut' ? 'Clock Out' : item,
-    type: 'text',
+    label: item === "ClockIn" ? "Clock In" : item === "ClockOut" ? "Clock Out" : item,
+    type: "text",
   }));
 
-  const addArray = ['Notes'];
-  const editHoursArray = ['ClockIn', 'ClockOut'];
+  const addArray = ["Notes"];
+  const editHoursArray = ["ClockIn", "ClockOut"];
 
   const handleOpenModal = (fieldArray: string[], title: string) => {
     setFieldsData(fieldArray);
@@ -73,14 +70,12 @@ export default function AttendancePage() {
 
   const clearFilters = () => {
     setSelectedEmployee(null);
-    setSelectedDate('');
-    setSearchText('');
+    setSelectedDate("");
+    setSearchText("");
   };
 
   const fetchAttendance = async () => {
-    const { data, error } = await supabase
-      .from('attendance')
-      .select(`
+    const { data, error } = await supabase.from("attendance").select(`
         attendance_id,
         date,
         clock_in,
@@ -95,9 +90,8 @@ export default function AttendancePage() {
       `);
 
     if (error) {
-      console.error('Error fetching attendance:', error);
+      console.error("Error fetching attendance:", error);
       setAttendance([]);
-
     } else if (Array.isArray(data)) {
       const attendanceData = data.map((item) => {
         const employee = Array.isArray(item.employees) ? item.employees[0] : item.employees;
@@ -105,16 +99,14 @@ export default function AttendancePage() {
         return {
           id: String(item.attendance_id),
           date: item.date,
-          employeeName: employee
-            ? `${employee.first_name} ${employee.last_name}`
-            : item.employee_id,
-          clockIn: item.clock_in || '',
-          clockOut: item.clock_out || '',
-          status: item.status || '',
-          notes: item.notes || '',
+          employeeName: employee ? `${employee.first_name} ${employee.last_name}` : item.employee_id,
+          clockIn: item.clock_in || "",
+          clockOut: item.clock_out || "",
+          status: item.status || "",
+          notes: item.notes || "",
           employeeId: item.employee_id,
-          first_name: employee?.first_name || '',
-          last_name: employee?.last_name || '',
+          first_name: employee?.first_name || "",
+          last_name: employee?.last_name || "",
         };
       });
 
@@ -128,10 +120,8 @@ export default function AttendancePage() {
           value: item.employeeId,
         };
       });
-
     } else {
       setAttendance([]);
-
     }
   };
 
@@ -141,20 +131,16 @@ export default function AttendancePage() {
 
   // FILTRO: por empleado, fecha y búsqueda por nombre
   const filteredAttendance = attendance.filter(
-    item =>
+    (item) =>
       (!selectedEmployee || item.employeeId === selectedEmployee) &&
       (!selectedDate || item.date === selectedDate) &&
-      (
-        searchText.trim() === '' ||
-        item.employeeName.toLowerCase().includes(searchText.toLowerCase())
-      )
+      (searchText.trim() === "" || item.employeeName.toLowerCase().includes(searchText.toLowerCase()))
   );
 
   // Indeterminate para el checkbox de encabezado
   useEffect(() => {
     if (selectAllRef.current) {
-      selectAllRef.current.indeterminate =
-        selectedIds.length > 0 && selectedIds.length < filteredAttendance.length;
+      selectAllRef.current.indeterminate = selectedIds.length > 0 && selectedIds.length < filteredAttendance.length;
     }
   }, [selectedIds, filteredAttendance.length]);
 
@@ -175,8 +161,8 @@ export default function AttendancePage() {
   );
 
   // Adapt columns for DynamicTable, agregando el checkbox de encabezado
-  const tableColumns = baseColumns.map(col =>
-    col.key === 'select'
+  const tableColumns = baseColumns.map((col) =>
+    col.key === "select"
       ? {
           ...col,
           label: (
@@ -184,9 +170,9 @@ export default function AttendancePage() {
               ref={selectAllRef}
               type="checkbox"
               checked={filteredAttendance.length > 0 && selectedIds.length === filteredAttendance.length}
-              onChange={e => {
+              onChange={(e) => {
                 if (e.target.checked) {
-                  setSelectedIds(filteredAttendance.map(a => a.id));
+                  setSelectedIds(filteredAttendance.map((a) => a.id));
                 } else {
                   setSelectedIds([]);
                 }
@@ -195,46 +181,43 @@ export default function AttendancePage() {
             />
           ),
         }
-      : col.key === 'actions'
+      : col.key === "actions"
       ? { ...col, render: renderActions }
       : col
   );
 
   // Prepara los datos iniciales para el modal según el tipo de edición
   const getInitialData = () => {
-    if (fieldsData.includes('Notes') && selectedIds.length === 1) {
-      return { notes: attendance.find(a => a.id === selectedIds[0])?.notes ?? '' };
+    if (fieldsData.includes("Notes") && selectedIds.length === 1) {
+      return { notes: attendance.find((a) => a.id === selectedIds[0])?.notes ?? "" };
     }
-    if (
-      (fieldsData.includes('ClockIn') || fieldsData.includes('ClockOut')) &&
-      selectedIds.length === 1
-    ) {
-      const record = attendance.find(a => a.id === selectedIds[0]);
+    if ((fieldsData.includes("ClockIn") || fieldsData.includes("ClockOut")) && selectedIds.length === 1) {
+      const record = attendance.find((a) => a.id === selectedIds[0]);
       return {
-        clockin: record?.clockIn ?? '',
-        clockout: record?.clockOut ?? '',
+        clockin: record?.clockIn ?? "",
+        clockout: record?.clockOut ?? "",
       };
     }
     // Para edición múltiple, campos vacíos
-    return fields.reduce((acc, field) => ({ ...acc, [field.name]: '' }), {});
+    return fields.reduce((acc, field) => ({ ...acc, [field.name]: "" }), {});
   };
 
   const exportToExcel = () => {
     // Usa los datos filtrados
-    const dataToExport = filteredAttendance.map(item => ({
+    const dataToExport = filteredAttendance.map((item) => ({
       Date: item.date,
-      'Employee Name': item.employeeName,
-      'Clock In': item.clockIn,
-      'Clock Out': item.clockOut,
+      "Employee Name": item.employeeName,
+      "Clock In": item.clockIn,
+      "Clock Out": item.clockOut,
       Status: item.status,
       Notes: item.notes,
     }));
 
     const worksheet = XLSX.utils.json_to_sheet(dataToExport);
     const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Attendance');
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Attendance");
 
-    XLSX.writeFile(workbook, 'attendance.xlsx');
+    XLSX.writeFile(workbook, "attendance.xlsx");
   };
 
   return (
@@ -250,7 +233,7 @@ export default function AttendancePage() {
               placeholder="Search employee"
               className="border border-gray-300 rounded px-2 py-1 w-64"
               value={searchText}
-              onChange={e => setSearchText(e.target.value)}
+              onChange={(e) => setSearchText(e.target.value)}
             />
           </div>
 
@@ -261,33 +244,27 @@ export default function AttendancePage() {
             fields={fields}
             initialData={getInitialData()}
             onSubmit={async (formData) => {
-              if (fieldsData.includes('Notes')) {
-                const notesValue = formData.notes ?? formData.Notes ?? '';
-                const { error } = await supabase
-                  .from('attendance')
-                  .update({ notes: notesValue })
-                  .in('attendance_id', selectedIds);
+              if (fieldsData.includes("Notes")) {
+                const notesValue = formData.notes ?? formData.Notes ?? "";
+                const { error } = await supabase.from("attendance").update({ notes: notesValue }).in("attendance_id", selectedIds);
 
                 if (error) {
-                  alert('Error updating notes: ' + error.message);
+                  alert("Error updating notes: " + error.message);
                 } else {
                   await fetchAttendance();
                   setShowModal(false);
                   setSelectedIds([]);
                 }
-              } else if (fieldsData.includes('ClockIn') || fieldsData.includes('ClockOut')) {
+              } else if (fieldsData.includes("ClockIn") || fieldsData.includes("ClockOut")) {
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 const updateObj: any = {};
-                if ('clockin' in formData) updateObj.clock_in = formData.clockin;
-                if ('clockout' in formData) updateObj.clock_out = formData.clockout;
+                if ("clockin" in formData) updateObj.clock_in = formData.clockin;
+                if ("clockout" in formData) updateObj.clock_out = formData.clockout;
 
-                const { error } = await supabase
-                  .from('attendance')
-                  .update(updateObj)
-                  .in('attendance_id', selectedIds);
+                const { error } = await supabase.from("attendance").update(updateObj).in("attendance_id", selectedIds);
 
                 if (error) {
-                  alert('Error updating clock in/out: ' + error.message);
+                  alert("Error updating clock in/out: " + error.message);
                 } else {
                   await fetchAttendance();
                   setShowModal(false);
@@ -299,7 +276,7 @@ export default function AttendancePage() {
           <input
             type="date"
             value={selectedDate}
-            onChange={e => setSelectedDate(e.target.value)}
+            onChange={(e) => setSelectedDate(e.target.value)}
             className="border rounded px-2 py-1"
             placeholder="Filter by date"
           />
@@ -308,24 +285,19 @@ export default function AttendancePage() {
         </div>
       </div>
 
-      <DynamicTable
-        data={filteredAttendance}
-        columns={tableColumns}
-        onSelectedRowsChange={setSelectedIds}
-        selectedRowIds={selectedIds}
-      />
+      <DynamicTable data={filteredAttendance} columns={tableColumns} onSelectedRowsChange={setSelectedIds} selectedRowIds={selectedIds} />
 
       {selectedIds.length > 0 && (
         <div className="flex justify-end gap-2">
           <Button
             label={`Edit Attendance (${selectedIds.length})`}
             className="bg-yellow-500 text-white"
-            onClick={() => handleOpenModal(addArray, 'Note')}
+            onClick={() => handleOpenModal(addArray, "Note")}
           />
           <Button
             label={`Edit Clock In/Out (${selectedIds.length})`}
             className="bg-blue-500 text-white"
-            onClick={() => handleOpenModal(editHoursArray, 'Edit Clock In/Out')}
+            onClick={() => handleOpenModal(editHoursArray, "Edit Clock In/Out")}
           />
         </div>
       )}

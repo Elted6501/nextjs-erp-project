@@ -1,14 +1,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from  '@/lib/supabase/server'; 
 
 // Initialize Supabase client with environment variables
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
 
+const supabase = await createClient();
 // Props for the ClockButton component
 type Props = {
   employeeId: string;
