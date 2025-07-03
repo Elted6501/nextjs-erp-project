@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { 
   Search, 
   Filter, 
@@ -90,8 +90,8 @@ export default function SalesHistoryPage() {
     totalPages: 0
   });
   
-  // Cargar ventas - CORREGIDO: usar endpoint correcto
-  const loadSales = async () => {
+  // Función para cargar ventas - usando useCallback para evitar recreación innecesaria
+  const loadSales = useCallback(async () => {
     setLoading(true);
     try {
       const params = new URLSearchParams({
@@ -103,14 +103,17 @@ export default function SalesHistoryPage() {
         ...(dateTo && { date_to: dateTo })
       });
 
-      // CAMBIO PRINCIPAL: usar /api/sales/selling en lugar de /api/sales/sales_returns
       const response = await fetch(`/api/sales/selling?${params}`);
       const data = await response.json();
 
       if (response.ok) {
         setSales(data.data || []);
         if (data.pagination) {
-          setPagination(data.pagination);
+          setPagination(prev => ({
+            ...prev,
+            total: data.pagination.total,
+            totalPages: data.pagination.totalPages
+          }));
         }
       } else {
         throw new Error(data.error || 'Error loading sales');
@@ -118,22 +121,63 @@ export default function SalesHistoryPage() {
     } catch (error) {
       console.error('Error loading sales:', error);
       setMessage({ type: 'error', text: 'Error loading sales' });
+      // Auto-hide error message
+      setTimeout(() => setMessage(null), 4000);
     } finally {
       setLoading(false);
     }
-  };
+  }, [pagination.page, pagination.limit, filter, search, dateFrom, dateTo]);
 
+  // Efecto para cargar ventas cuando cambien los filtros principales
   useEffect(() => {
     loadSales();
-  }, [pagination.page, filter]);
+  }, [pagination.page, filter]); // Removido loadSales de dependencias
 
+  // Efecto separado para search y fechas con debounce
   useEffect(() => {
     const timer = setTimeout(() => {
       setPagination(prev => ({ ...prev, page: 1 }));
-      loadSales();
+      // Llamar loadSales directamente aquí para evitar dependencias circulares
+      const loadWithSearch = async () => {
+        setLoading(true);
+        try {
+          const params = new URLSearchParams({
+            page: '1',
+            limit: pagination.limit.toString(),
+            ...(filter !== 'all' && { status: filter }),
+            ...(search && { search }),
+            ...(dateFrom && { date_from: dateFrom }),
+            ...(dateTo && { date_to: dateTo })
+          });
+
+          const response = await fetch(`/api/sales/selling?${params}`);
+          const data = await response.json();
+
+          if (response.ok) {
+            setSales(data.data || []);
+            if (data.pagination) {
+              setPagination(prev => ({
+                ...prev,
+                page: 1,
+                total: data.pagination.total,
+                totalPages: data.pagination.totalPages
+              }));
+            }
+          } else {
+            throw new Error(data.error || 'Error loading sales');
+          }
+        } catch (error) {
+          console.error('Error loading sales:', error);
+          setMessage({ type: 'error', text: 'Error loading sales' });
+          setTimeout(() => setMessage(null), 4000);
+        } finally {
+          setLoading(false);
+        }
+      };
+      loadWithSearch();
     }, 500);
     return () => clearTimeout(timer);
-  }, [search, dateFrom, dateTo]);
+  }, [search, dateFrom, dateTo, filter, pagination.limit]);
 
   const handleReturnSale = async () => {
     if (!selectedSale || !returnReason.trim()) {
@@ -171,7 +215,8 @@ export default function SalesHistoryPage() {
         setSelectedSale(null);
         setReturnReason('');
         setRefoundMethod('Store Credit');
-        await loadSales(); // Recargar la lista
+        // Recargar la lista después de procesar devolución
+        await loadSales();
       } else {
         throw new Error(result.error || 'Failed to process return');
       }
@@ -247,17 +292,15 @@ export default function SalesHistoryPage() {
 
   const validateReturnForm = () => {
     if (!returnReason.trim()) {
-      setMessage({ type: 'error', text: 'Please provide a reason for the return' });
       return false;
     }
     if (returnReason.trim().length < 10) {
-      setMessage({ type: 'error', text: 'Return reason must be at least 10 characters long' });
       return false;
     }
     return true;
   };
 
-  // Función para obtener el nombre del cliente - CORREGIDA
+  // Función para obtener el nombre del cliente
   const getClientName = (sale: Sale) => {
     if (sale.clients) {
       if (sale.clients.client_type === 'Business') {
@@ -268,6 +311,27 @@ export default function SalesHistoryPage() {
     }
     return sale.client_name || 'Anonymous';
   };
+
+  // Handlers para evitar recreación de funciones
+  const handlePageChange = useCallback((newPage: number) => {
+    setPagination(prev => ({ ...prev, page: newPage }));
+  }, []);
+
+  const handleFilterChange = useCallback((newFilter: 'all' | 'active' | 'returned') => {
+    setFilter(newFilter);
+    setPagination(prev => ({ ...prev, page: 1 }));
+  }, []);
+
+  const handleCloseReturnModal = useCallback(() => {
+    setShowReturnModal(false);
+    setReturnReason('');
+    setRefoundMethod('Store Credit');
+  }, []);
+
+  const handleOpenReturnModal = useCallback((sale: Sale) => {
+    setSelectedSale(sale);
+    setShowReturnModal(true);
+  }, []);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-gray-100 to-gray-50 p-4">
@@ -328,7 +392,7 @@ export default function SalesHistoryPage() {
           {/* Status Filter */}
           <select
             value={filter}
-            onChange={(e) => setFilter(e.target.value as typeof filter)}
+            onChange={(e) => handleFilterChange(e.target.value as typeof filter)}
             className="px-4 py-2.5 text-gray-700 rounded-lg focus:outline-none focus:ring-4 focus:ring-white/30"
           >
             <option value="all">All Sales</option>
@@ -383,7 +447,7 @@ export default function SalesHistoryPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {sales.map((sale, index) => (
+                  {sales.map((sale) => (
                     <tr 
                       key={sale.sale_id} 
                       className="border-b hover:bg-gray-50 transition-all duration-200"
@@ -442,10 +506,7 @@ export default function SalesHistoryPage() {
                           </button>
                           {sale.status && (
                             <button
-                              onClick={() => {
-                                setSelectedSale(sale);
-                                setShowReturnModal(true);
-                              }}
+                              onClick={() => handleOpenReturnModal(sale)}
                               className="p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-all duration-200"
                               title="Process Return"
                             >
@@ -516,10 +577,7 @@ export default function SalesHistoryPage() {
                     </button>
                     {sale.status && (
                       <button
-                        onClick={() => {
-                          setSelectedSale(sale);
-                          setShowReturnModal(true);
-                        }}
+                        onClick={() => handleOpenReturnModal(sale)}
                         className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-red-50 text-red-700 rounded-lg hover:bg-red-100 transition-colors"
                       >
                         <RotateCcw size={16} />
@@ -547,7 +605,7 @@ export default function SalesHistoryPage() {
             {pagination.totalPages > 1 && (
               <div className="mt-8 flex justify-center items-center gap-2">
                 <button
-                  onClick={() => setPagination(prev => ({ ...prev, page: Math.max(1, prev.page - 1) }))}
+                  onClick={() => handlePageChange(Math.max(1, pagination.page - 1))}
                   disabled={pagination.page === 1}
                   className="p-2 bg-white border-2 border-gray-200 hover:border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-all duration-200"
                 >
@@ -560,7 +618,7 @@ export default function SalesHistoryPage() {
                     return (
                       <button
                         key={pageNum}
-                        onClick={() => setPagination(prev => ({ ...prev, page: pageNum }))}
+                        onClick={() => handlePageChange(pageNum)}
                         className={`w-10 h-10 rounded-lg text-sm font-medium transition-all duration-200 ${
                           pagination.page === pageNum
                             ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg'
@@ -575,7 +633,7 @@ export default function SalesHistoryPage() {
                     <>
                       <span className="px-2">...</span>
                       <button
-                        onClick={() => setPagination(prev => ({ ...prev, page: pagination.totalPages }))}
+                        onClick={() => handlePageChange(pagination.totalPages)}
                         className={`w-10 h-10 rounded-lg text-sm font-medium transition-all duration-200 ${
                           pagination.page === pagination.totalPages
                             ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg'
@@ -589,7 +647,7 @@ export default function SalesHistoryPage() {
                 </div>
                 
                 <button
-                  onClick={() => setPagination(prev => ({ ...prev, page: Math.min(prev.totalPages, prev.page + 1) }))}
+                  onClick={() => handlePageChange(Math.min(pagination.totalPages, pagination.page + 1))}
                   disabled={pagination.page === pagination.totalPages}
                   className="p-2 bg-white border-2 border-gray-200 hover:border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-all duration-200"
                 >
@@ -693,11 +751,7 @@ export default function SalesHistoryPage() {
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-xl font-bold text-red-700">Process Return</h2>
               <button
-                onClick={() => {
-                  setShowReturnModal(false);
-                  setReturnReason('');
-                  setRefoundMethod('Store Credit');
-                }}
+                onClick={handleCloseReturnModal}
                 className="text-gray-500 hover:text-gray-700 p-1 hover:bg-gray-100 rounded"
               >
                 <X size={20} />
@@ -760,11 +814,7 @@ export default function SalesHistoryPage() {
 
               <div className="flex gap-3">
                 <button
-                  onClick={() => {
-                    setShowReturnModal(false);
-                    setReturnReason('');
-                    setRefoundMethod('Store Credit');
-                  }}
+                  onClick={handleCloseReturnModal}
                   className="flex-1 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium transition-colors"
                   disabled={processingReturn}
                 >
