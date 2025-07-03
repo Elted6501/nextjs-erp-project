@@ -14,56 +14,58 @@ export async function POST(req: NextRequest) {
   try {
     // Parse username and password from the request body
     const { username, password } = await req.json();
+    // 1. Obtener información básica del empleado
+    const { data: employee, error: employeeError } = await supabase.from("employees").select("*").eq("email", username).single();
 
-    // Query the employee by email (username)
-    const { data, error } = await supabase
-      .from("employees")
-      .select("*")
-      .eq("email", username)
-      .single();
-
-    // If user not found or error, return 401
-    if (error || !data) {
+    if (employeeError || !employee) {
       return NextResponse.json({ error: "User not found" }, { status: 401 });
     }
 
-    // Compare the provided password with the hashed password in the database
-    const isMatch = await bcrypt.compare(password, data.password);
-
-    if (!isMatch) {
-      // If password does not match, return 401
+    if (employee.password !== password) {
       return NextResponse.json({ error: "Incorrect password" }, { status: 401 });
     }
 
-    // If the user must change password, do not generate token
-    if (data.must_change_password) {
-      return NextResponse.json({ mustChangePassword: true, userId: data.employee_id });
+    // 2. Obtener los roles del empleado usando una subconsulta
+    const { data: rolesData, error: rolesError } = await supabase
+      .from("employee_roles")
+      .select(
+        `
+        role_id,
+        roles:roles(role_name)
+      `
+      )
+      .eq("employee_id", employee.employee_id);
+
+    if (rolesError) {
+      console.error("Error fetching roles:", rolesError);
     }
 
-    // Get all roles for the user
-    const { data: rolesData} = await supabase
-      .from("employee_roles")
-      .select("role_id")
-      .eq("employee_id", data.employee_id);
+    //eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const roles = rolesData?.map((role: any) => role.roles.role_name) || [];
 
-    // Extract role IDs as an array
-    const role_ids = rolesData ? rolesData.map(r => r.role_id) : [];
-
-    // Generate JWT token with user info and roles
     const token = jwt.sign(
       {
-        employee_id: data.employee_id,
-        email: data.email,
-        first_name: data.first_name,
-        last_name: data.last_name,
-        role_ids, // now an array
+        employee_id: employee.employee_id,
+        email: employee.email,
+        first_name: employee.first_name,
+        last_name: employee.last_name,
+        roles: roles,
       },
       JWT_SECRET,
       { expiresIn: "2h" }
     );
 
-    // Create the response and set the token as an HTTP-only cookie
-    const res = NextResponse.json({ success: true, token });
+    // 5. Configurar respuesta con cookie
+    const res = NextResponse.json({
+      success: true,
+      token,
+      employee: {
+        first_name: employee.first_name,
+        last_name: employee.last_name,
+        email: employee.email,
+        roles: roles,
+      },
+    });
 
     res.headers.set(
       "Set-Cookie",

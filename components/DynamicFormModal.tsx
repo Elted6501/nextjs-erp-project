@@ -21,6 +21,7 @@ export type Field = {
   label: string;
   type: 'text' | 'number' | 'select' | 'switch' | 'date' | 'time' | 'multiselect';
   options?: { label: string; value: string }[]; // para select y multiselect
+  displayValue?: string; // para select y multiselect
 };
 
 export default function DynamicFormModal({

@@ -7,8 +7,6 @@ export default function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
   const paths = pathname.split('/').filter((segment) => segment);
-
-
   const handleLogout = () => {
     // Limpia el token/cookie aquí si es necesario
     // Por ejemplo: localStorage.removeItem('token');
