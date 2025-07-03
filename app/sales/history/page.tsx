@@ -103,7 +103,7 @@ export default function SalesHistoryPage() {
         ...(dateTo && { date_to: dateTo })
       });
 
-      const response = await fetch(`/api/sales-returns?${params}`);
+      const response = await fetch(`/api/sales/sales_returns?${params}`);
       const data = await response.json();
 
       if (response.ok) {
@@ -149,7 +149,7 @@ export default function SalesHistoryPage() {
 
     setProcessingReturn(true);
     try {
-      const response = await fetch('/api/sales-returns', {
+      const response = await fetch('/api/sales/sales_returns', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
