@@ -130,10 +130,13 @@ export type ScheduleResultsType = {
 };
 
 export type MaintenanceType = {
-    notes: string
-    mn_assigned: string
-    mn_made: string
-    mn_completed: string
+    employee_id?:number;
+    maintenance_id?:number;
+    maintenance_folio?: string;
+    notes: string;
+    mn_assigned: string;
+    mn_made: string;
+    mn_completed: string;
 }
 
 export type FolioStatusProps = { statusSteps: { label: string, icon: JSX.Element }[], progressWidth: number, currentIndex: number }

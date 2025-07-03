@@ -9,6 +9,9 @@ import {
   FiFileText,
 } from 'react-icons/fi';
 
+// Force dynamic rendering to prevent static generation issues with Supabase
+export const dynamic = 'force-dynamic';
+
 // List of all HR submodules with their metadata and required permissions
 const allSubmodules = [
    {

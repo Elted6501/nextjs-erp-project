@@ -7,6 +7,9 @@ import DynamicFormModal, { Field } from '@/components/DynamicFormModal';
 import AlertDialog from '@/components/AlertDialog';
 import { PermissionsGate } from '@/app/components/PermissionsGate';
 
+// Force dynamic rendering to prevent static generation issues with Supabase
+export const dynamic = 'force-dynamic';
+
 // Role interface for table data
 interface Role {
   role_id: string;
