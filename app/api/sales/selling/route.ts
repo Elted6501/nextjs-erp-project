@@ -317,7 +317,7 @@ export async function POST(request: Request) {
   }
 }
 
-// GET para obtener ventas
+// GET para obtener ventas - MÉTODO CORREGIDO
 export async function GET(request: Request) {
   try {
     const supabase = await createClient();
@@ -334,26 +334,12 @@ export async function GET(request: Request) {
     const dateFrom = searchParams.get('date_from');
     const dateTo = searchParams.get('date_to');
     const status = searchParams.get('status');
+    const search = searchParams.get('search');
     
-    // Construir query base
+    // PASO 1: Obtener ventas básicas SIN joins problemáticos
     let query = supabase
       .from('sales')
-      .select(`
-        *,
-        clients:client_id(
-          client_id,
-          client_type,
-          business_name,
-          first_name,
-          last_name,
-          email
-        ),
-        employees:employee_id(
-          employee_id,
-          first_name,
-          last_name
-        )
-      `, { count: 'exact' });
+      .select('*', { count: 'exact' });
     
     // Aplicar filtros
     if (clientId && !isNaN(parseInt(clientId))) {
@@ -377,36 +363,114 @@ export async function GET(request: Request) {
     } else if (status === 'returned') {
       query = query.eq('status', false);
     }
+
+    // Buscar por ID de venta
+    if (search && !isNaN(parseInt(search))) {
+      query = query.eq('sale_id', parseInt(search));
+    }
     
     // Aplicar paginación y ordenamiento
     query = query
       .order('sale_date', { ascending: false })
       .range(offset, offset + limit - 1);
     
-    const { data, error, count } = await query;
+    const { data: salesData, error: salesError, count } = await query;
     
-    if (error) {
-      console.error('Error fetching sales:', error);
+    if (salesError) {
+      console.error('Error fetching sales:', salesError);
       return NextResponse.json(
-        { error: 'Error fetching sales', details: error.message },
+        { error: 'Error fetching sales', details: salesError.message },
         { status: 500 }
       );
     }
 
-    // Procesar datos para agregar totales calculados
-    const processedData = data?.map(sale => {
+    if (!salesData) {
+      return NextResponse.json({
+        data: [],
+        pagination: {
+          page,
+          limit,
+          total: 0,
+          totalPages: 0
+        }
+      });
+    }
+
+    // PASO 2: Obtener información de clientes para las ventas que tienen client_id
+    const clientIds = salesData
+      .filter(sale => sale.client_id)
+      .map(sale => sale.client_id);
+    
+    let clientsData: any[] = [];
+    if (clientIds.length > 0) {
+      const { data: clients, error: clientsError } = await supabase
+        .from('clients')
+        .select('client_id, client_type, business_name, first_name, last_name, email, tax_id')
+        .in('client_id', clientIds);
+      
+      if (!clientsError && clients) {
+        clientsData = clients;
+      }
+    }
+
+    // PASO 3: Obtener información de empleados
+    const employeeIds = salesData
+      .filter(sale => sale.employee_id)
+      .map(sale => sale.employee_id);
+    
+    let employeesData: any[] = [];
+    if (employeeIds.length > 0) {
+      const { data: employees, error: employeesError } = await supabase
+        .from('employees')
+        .select('employee_id, first_name, last_name')
+        .in('employee_id', employeeIds);
+      
+      if (!employeesError && employees) {
+        employeesData = employees;
+      }
+    }
+
+    // PASO 4: Combinar los datos y procesar
+    const processedData = salesData.map(sale => {
+      // Buscar cliente asociado
+      const client = clientsData.find(c => c.client_id === sale.client_id);
+      
+      // Buscar empleado asociado
+      const employee = employeesData.find(e => e.employee_id === sale.employee_id);
+      
+      // Calcular totales desde los productos
       const products = sale.products || [];
       const subtotal = products.reduce((sum: number, product: any) => sum + (product.total_price || 0), 0);
       const total = subtotal + (sale.vat || 0);
       const totalItems = products.reduce((sum: number, product: any) => sum + (product.quantity || 0), 0);
       
+      // Determinar nombre del cliente
+      let client_name = 'Anonymous';
+      if (client) {
+        if (client.client_type === 'Business') {
+          client_name = client.business_name || 'Unknown Business';
+        } else {
+          client_name = `${client.first_name || ''} ${client.last_name || ''}`.trim() || 'Unknown Individual';
+        }
+      }
+      
+      // Determinar nombre del empleado
+      const employee_name = employee ? 
+        `${employee.first_name || ''} ${employee.last_name || ''}`.trim() : 
+        'N/A';
+
       return {
         ...sale,
         subtotal,
         total,
-        total_items: totalItems
+        total_items: totalItems,
+        client_name,
+        employee_name,
+        // Incluir objetos completos para compatibilidad con el frontend
+        clients: client || null,
+        employees: employee || null
       };
-    }) || [];
+    });
     
     return NextResponse.json({
       data: processedData,
