@@ -137,3 +137,20 @@ export type MaintenanceType = {
 }
 
 export type FolioStatusProps = { statusSteps: { label: string, icon: JSX.Element }[], progressWidth: number, currentIndex: number }
+
+export type ProductsType = {
+    product_id: number;
+    name: string;
+    sku: string;
+    cost_price: number;
+    sale_price: number;
+    stock?: number;
+    quantity?: number
+}
+
+export type ListProductsType = { 
+    setProducts: Dispatch<SetStateAction<ProductsType[]>>;
+    prods: ProductsType[];
+    products: ProductsType[];
+    Quantity?: number
+}

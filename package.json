@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@headlessui/react": "^2.2.4",
     "@supabase/ssr": "^0.6.1",
     "@supabase/supabase-js": "^2.49.10",
     "@tailwindcss/postcss": "^4.1.8",
