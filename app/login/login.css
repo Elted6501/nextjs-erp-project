@@ -73,6 +73,71 @@
   white-space: nowrap;
   overflow: hidden;
 }
+.password-container {
+  position: relative;
+  width: 100%;
+  display: flex;
+  align-items: center;
+}
+
+.password-container input {
+  width: 100%;
+  padding-right: 40px; 
+  height: 40px;
+  box-sizing: border-box;
+}
+
+
+.password-container .eye-icon {
+  position: absolute;
+  right: 12px;
+  height: 20px;
+  width: 20px;
+  cursor: pointer;
+  opacity: 0.7;
+  transition: opacity 0.2s ease;
+}
+
+.password-container .eye-icon:hover {
+  opacity: 1;
+}
+.login-button {
+  transition: all 0.3s ease;
+  padding: 10px 20px;
+  font-size: 16px;
+  cursor: pointer;
+  background-color: #0070f3;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  position: relative;
+  overflow: hidden;
+  z-index: 0;
+}
+
+.login-button.glow {
+  position: relative;
+  z-index: 2;
+}
+.login-button.glow::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -75%;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(120deg, transparent, rgba(255, 255, 255, 0.6), transparent);
+  animation: glowMove 1.2s linear;
+  z-index: 1; 
+  pointer-events: none;
+}
+
+@keyframes glowMove {
+  0% { left: -75%; }
+  100% { left: 125%; }
+}
+
+
 
 
 

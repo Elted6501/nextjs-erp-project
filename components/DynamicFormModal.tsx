@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState } from 'react';
 import ReactDOM from 'react-dom';
 import Button from './Button';
+import Select from 'react-select';
+
 interface DynamicFormModalProps {
   title: string;
   fields: Field[];
@@ -10,13 +12,15 @@ interface DynamicFormModalProps {
   onClose: () => void;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   onSubmit: (data: Record<string, any>) => void;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  initialData?: Record<string, any> | null;
 }
 
 export type Field = {
   name: string;
   label: string;
-  type: 'text' | 'number' | 'select' | 'switch';
-  options?: { label: string; value: string }[];
+  type: 'text' | 'number' | 'select' | 'switch' | 'date' | 'time' | 'multiselect';
+  options?: { label: string; value: string }[]; // para select y multiselect
 };
 
 export default function DynamicFormModal({
@@ -25,10 +29,17 @@ export default function DynamicFormModal({
   isOpen,
   onClose,
   onSubmit,
+  initialData,
 }: DynamicFormModalProps) {
   const modalRef = useRef<HTMLDivElement>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [formData, setFormData] = useState<Record<string, any>>({});
+
+  useEffect(() => {
+    if (isOpen) {
+      setFormData(initialData || {});
+    }
+  }, [isOpen, initialData]);
 
   // Bloquear scroll
   useEffect(() => {
@@ -53,6 +64,7 @@ export default function DynamicFormModal({
       onClose();
     }
   };
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleChange = (name: string, value: any) => {
     setFormData(prev => ({ ...prev, [name]: value }));
@@ -95,6 +107,49 @@ export default function DynamicFormModal({
                     <option key={option.value} value={option.value}>{option.label}</option>
                   ))}
                 </select>
+              ) : field.type === 'multiselect' ? (
+                <Select
+                  isMulti
+                  options={field.options}
+                  value={field.options?.filter(opt => (formData[field.name] || []).includes(opt.value))}
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  onChange={selected => handleChange(field.name, selected ? selected.map((opt: any) => opt.value) : [])}
+                  classNamePrefix="tw-select"
+                  placeholder="Select one or more roles"
+                  styles={{
+                    control: (base, state) => ({
+                      ...base,
+                      backgroundColor: 'white',
+                      borderColor: '#000', 
+                      borderRadius: '0.375rem', // Tailwind rounded
+                      minHeight: '2.5rem',
+                      boxShadow: state.isFocused ? '0 0 0 2px #a01217' : base.boxShadow,
+                      '&:hover': { borderColor: '#a01217' },
+                    }),
+                    multiValue: (base) => ({
+                      ...base,
+                      backgroundColor: '#f3f4f6', // Tailwind gray-100
+                      color: '#a01217',
+                    }),
+                    multiValueLabel: (base) => ({
+                      ...base,
+                      color: '#a01217',
+                    }),
+                    option: (base, state) => ({
+                      ...base,
+                      backgroundColor: state.isSelected
+                        ? '#a01217'
+                        : state.isFocused
+                        ? '#f3f4f6'
+                        : 'white',
+                      color: state.isSelected ? 'white' : '#111827', // Tailwind gray-900
+                    }),
+                    menu: (base) => ({
+                      ...base,
+                      zIndex: 9999,
+                    }),
+                  }}
+                />
               ) : field.type === 'switch' ? (
                 <input
                   type="checkbox"

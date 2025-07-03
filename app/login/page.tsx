@@ -4,43 +4,61 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import './login.css';
 
+// Login component for user authentication
 function Login() {
+  // State for username (email) input
   const [username, setUsername] = useState('');
+  // State for password input
   const [password, setPassword] = useState('');
+  // State to toggle password visibility
+  const [showPassword, setShowPassword] = useState(false);
+  // Next.js router for navigation
   const router = useRouter();
+  // State for button animation
+  const [animationType, setAnimationType] = useState<'' | 'glow'>('');
 
+  // Redirect to home if already logged in (token exists)
   useEffect(() => {
-    // Redirect if JWT cookie exists (basic check; ideally should validate the token on server)
     if (document.cookie.includes('token=')) {
       router.push('/');
     }
   }, [router]);
 
+  // Handle login form submission
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      // Send login request to API
       const res = await fetch('/api/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password }),
       });
 
+      const data = await res.json();
+
+      if (res.ok && data.mustChangePassword) {
+        // Redirect to change password page if required
+        router.push(`/change-password?userId=${data.userId}`);
+        return;
+      }
+
       if (res.ok) {
-        const { token } = await res.json();
-        console.log('Received JWT:', token); // 👉 Debug: print JWT in console
+        // On successful login, redirect to home
+        const { token } = data;
+        console.log('Received JWT:', token);
         router.push('/');
       } else {
-        const { error } = await res.json();
-        alert(error || 'Invalid credentials');
+        // Show error message
+        alert(data.error || 'Invalid credentials');
       }
     } catch (err) {
-    console.error(err);
-    alert('Failed to connect to the server');
+      console.error(err);
+      alert('Failed to connect to the server');
     }
-
   };
 
-  // Text typing animation
+  // Typewriter effect for welcome messages
   useEffect(() => {
     const texts = ['Welcome', 'Bienvenido', 'Bienvenue', 'Bem-vindo', '欢迎'];
     const typingElement = document.querySelector('.typewriter-text');
@@ -77,25 +95,45 @@ function Login() {
     type();
   }, []);
 
+  // Render login form
   return (
     <div className="login-container">
-      <Image src="/logo4k.png" alt="NitroDrive Logo" className="login-logo" width={1228} height={772}/>
+      <Image src="/logo4k.png" alt="NitroDrive Logo" className="login-logo" width={1228} height={772} />
       <div className="login-content">
         <form className="login-form" onSubmit={handleLogin}>
           <h2><span className="typewriter-text"></span></h2>
+
           <input
             type="text"
-            placeholder="username"
+            placeholder="email"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
           />
-          <input
-            type="password"
-            placeholder="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
-          <button type="submit">Login</button>
+
+          <div className="password-container">
+            <input
+              type={showPassword ? 'text' : 'password'}
+              placeholder="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+            <Image
+              src={showPassword ? '/eye-open.png' : '/eye-closed.png'}
+              alt="Toggle password visibility"
+              width={20}
+              height={20}
+              className="eye-icon"
+              onClick={() => setShowPassword(!showPassword)}
+            />
+          </div>
+
+            <button
+              type="submit"
+              className={`login-button ${animationType === 'glow' ? 'glow' : ''}`}
+              onClick={() => setAnimationType('glow')}
+            >
+              Login
+            </button>
         </form>
       </div>
     </div>

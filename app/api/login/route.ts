@@ -2,15 +2,18 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import jwt from "jsonwebtoken";
 import { serialize } from "cookie";
+import bcrypt from "bcryptjs";
 
+// Secret key for JWT signing
 const JWT_SECRET = process.env.JWT_SECRET!;
 
 export async function POST(req: NextRequest) {
+
   const supabase = await createClient();
 
   try {
+    // Parse username and password from the request body
     const { username, password } = await req.json();
-
     // 1. Obtener información básica del empleado
     const { data: employee, error: employeeError } = await supabase.from("employees").select("*").eq("email", username).single();
 
@@ -71,12 +74,13 @@ export async function POST(req: NextRequest) {
         secure: process.env.NODE_ENV === "production",
         sameSite: "strict",
         path: "/",
-        maxAge: 60 * 60 * 2,
+        maxAge: 60 * 60 * 2, // 2 hours
       })
     );
 
     return res;
   } catch (error) {
+    // Handle unexpected errors
     console.error("Login error:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
