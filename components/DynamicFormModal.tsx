@@ -17,6 +17,7 @@ export type Field = {
   label: string;
   type: 'text' | 'number' | 'select' | 'switch';
   options?: { label: string; value: string }[];
+  displayValue?: string; 
 };
 
 export default function DynamicFormModal({

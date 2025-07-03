@@ -47,6 +47,9 @@ export function useProductMovements(
   shouldDelete: boolean,
   setSelectedIds: (ids: string[]) => void,
   setShouldDelete: (show: boolean) => void,
+  setWarehouseOptions: (options: {label: string, value: string}[]) => void,
+  setSupplierOptions: (options: {label: string, value: string}[]) => void,
+  setCategoryOptions: (options: {label: string, value: string}[]) => void
   /* setWarehouseApiList: (list: string[]) => void,
   setCategoryApiList: (list: string[]) => void,
   setSupplierApiList: (list: string[]) => void */
@@ -83,6 +86,42 @@ export function useProductMovements(
         }
       );
   }, [setTableData]);
+
+  // Dentro de useProductMovements, después del primer useEffect
+useEffect(() => {
+  // Obtener warehouses
+  fetch('/api/inventory/warehouses')
+    .then(res => res.json())
+    .then(data => {
+      const options = data.map((item: any) => ({
+        label: item.name,
+        value: item.warehouse_id.toString()
+      }));
+      setWarehouseOptions(options);
+    });
+
+  // Obtener suppliers
+  fetch('/api/inventory/suppliers')
+    .then(res => res.json())
+    .then(data => {
+      const options = data.map((item: any) => ({
+        label: item.name,
+        value: item.supplier_id.toString()
+      }));
+      setSupplierOptions(options);
+    });
+
+  // Obtener categories
+  fetch('/api/inventory/categories')
+    .then(res => res.json())
+    .then(data => {
+      const options = data.map((item: any) => ({
+        label: item.name,
+        value: item.category_id.toString()
+      }));
+      setCategoryOptions(options);
+    });
+}, [setWarehouseOptions, setSupplierOptions, setCategoryOptions]);
 
   /* useEffect(() => {
     fetch('/api/inventory/warehouses')
