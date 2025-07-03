@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import jwt from "jsonwebtoken";
 import { serialize } from "cookie";
-import bcrypt from "bcryptjs";
 
 // Secret key for JWT signing
 const JWT_SECRET = process.env.JWT_SECRET!;
