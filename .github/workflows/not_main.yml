@@ -8,6 +8,7 @@ on:
       - sales
       - inventory
       - maintenance
+      - main
 jobs:
   lint:
     runs-on: ubuntu-latest
